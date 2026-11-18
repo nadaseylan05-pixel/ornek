@@ -1,12 +1,14 @@
 import Link from "next/link";
-import Tabs from "@/modules/shared/ui/Tabs";
+import { io } from "next/cache";
 import EmptyState from "@/modules/shared/ui/EmptyState";
 import { getStockView } from "../server/stockService";
 import { getEntryOptions } from "../server/catalogService";
 import { getLastPriceBatch } from "../server/priceService";
 import { formatDateTime } from "@/lib/dates";
-import { STOCK_GROUPS, STOCK_SECTIONS, priceBatchLabel, readStockQuery, searchTerms, stockHref } from "../stockRules";
+import { priceBatchLabel, readStockQuery, searchTerms, stockHref } from "../stockRules";
 import StockToolbar from "./StockToolbar";
+import StockSections from "./StockSections";
+import GroupPills from "./GroupPills";
 import StockEntryButton from "./StockEntryButton";
 import StockAlerts from "./StockAlerts";
 import ProductGroupList from "./ProductGroupList";
@@ -19,17 +21,23 @@ import "./stock.css";
 // Each section loads only its own data.
 export default async function StockPage({ searchParams }) {
   const query = readStockQuery(await searchParams);
+  // Dates on this page ("today", price batch times) read the clock; with cacheComponents that must happen at
+  // request time, not during prerender (CLAUDE.md: io() before server code that reads time).
+  await io();
   return (
     <section className="stock-page">
-      <header className="stock-head">
-        <p className="ui-eyebrow">Şelale İşitme · Yönetim</p>
-        <h1>Stok</h1>
-        <p>Raftaki cihazlar, aksesuarlar ve piller; servis fiyatları.</p>
-      </header>
-
-      <Tabs param="sekme" label="Bölüm" items={STOCK_SECTIONS} />
-
-      {query.sekme === "servis" ? <ServiceCatalog /> : <CurrentStock query={query} />}
+      {/* The design opens straight with the toolbar card; the heading stays for screen readers. */}
+      <h1 className="ui-visually-hidden">Stok</h1>
+      {query.sekme === "servis" ? (
+        <>
+          <div className="stock-toolbar stock-toolbar-plain">
+            <StockSections />
+          </div>
+          <ServiceCatalog />
+        </>
+      ) : (
+        <CurrentStock query={query} />
+      )}
     </section>
   );
 }
@@ -73,17 +81,7 @@ async function CurrentStock({ query }) {
           Arama: <strong>{query.ara}</strong> · {view.modelCount} model
         </p>
       ) : (
-        <div className="stock-filters">
-          <Tabs param="grup" label="Ürün grubu" items={STOCK_GROUPS.map((group) => ({ value: group.key, label: group.label }))} />
-          {view.brands.length > 0 && (
-            <Tabs
-              param="marka"
-              variant="chips"
-              label="Marka"
-              items={[{ value: "tumu", label: "Tümü" }, ...view.brands.map((brand) => ({ value: String(brand.id), label: brand.name }))]}
-            />
-          )}
-        </div>
+        <GroupPills currentGroup={query.grup} brands={view.brands} />
       )}
 
       {view.modelCount === 0 ? (

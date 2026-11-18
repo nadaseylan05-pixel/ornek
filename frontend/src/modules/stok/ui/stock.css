@@ -1,37 +1,139 @@
 /* Stok page. Colours come from the --ui-* tokens in shared/ui/ui.css; breakpoints follow panel-shell.css
    (≤600 px phone, 601–1279 tablet, ≥1280 desktop). */
 
-.stock-page { display: grid; gap: 18px; min-width: 0; }
-
-.stock-head h1 { margin: 0 0 4px; color: var(--ui-ink); font-size: clamp(24px, 2.4vw, 30px); letter-spacing: -.02em; }
-.stock-head p { margin: 0; color: var(--ui-muted); }
+.stock-page { display: grid; gap: 16px; min-width: 0; }
 
 .stock-muted { color: var(--ui-muted); font-size: 13px; }
 .stock-code { font-variant-numeric: tabular-nums; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; }
 
-/* ---------- Toolbar ---------- */
-.stock-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
-.stock-search { display: flex; flex: 1 1 360px; align-items: flex-end; gap: 8px; min-width: 0; max-width: 640px; }
-.stock-search > .ui-field { flex: 1 1 auto; }
-.stock-clear { min-height: 42px; }
+/* ---------- Toolbar card (values measured from son.html's .stock-toolbar) ----------
+   Rows: search across the top; section switch + "Fiyat güncelle" with the view switch on the right;
+   then "Stok ekle" and "Stok sil" aligned right. */
+.stock-toolbar {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "search search" "filters view" "actions actions";
+  align-items: center; gap: 10px 12px; padding: 12px;
+  border: 1px solid #dce7ea; border-radius: 16px;
+  background: linear-gradient(100deg, #f8fbfc 0%, #eef4f6 100%);
+}
+.stock-toolbar-plain { grid-template-areas: "filters"; grid-template-columns: minmax(0, 1fr); }
+.stock-search { grid-area: search; display: grid; gap: 5px; min-width: 0; }
+.stock-search .ui-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.stock-search .ui-input-wrap .ui-input {
+  min-height: 48px; padding-left: 40px; border-color: #91a4bf; border-radius: 13px; font-size: 13px;
+  box-shadow: 0 2px 5px rgba(24, 50, 68, .04), 0 8px 20px rgba(24, 50, 68, .043);
+}
+.stock-scan-helper { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stock-scan-helper button {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px;
+  border: 1px solid #d8e5e0; border-radius: 999px; background: #f2f7f5; color: var(--ui-ink);
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.stock-scan-helper button:hover { border-color: #91a4bf; background: #fff; }
+.stock-clear { margin-left: auto; color: var(--ui-blue); font-size: 12px; font-weight: 700; text-decoration: none; }
+.stock-clear:hover { text-decoration: underline; }
+
+.stock-toolbar-filters { grid-area: filters; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+
+/* Dark segmented switch: the active section is a white chip, the others white text on the dark track. */
+.stock-sections {
+  display: inline-flex; gap: 2px; padding: 4px;
+  border: 1px solid #667085; border-radius: 12px; background: #1f2937;
+}
+.stock-sections a {
+  padding: 10px 11px; border: 1px solid transparent; border-radius: 9px;
+  color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap;
+}
+.stock-sections a:hover { background: rgba(255, 255, 255, .1); }
+.stock-sections a.on {
+  border-color: #d5e3f7; background: #fff; color: var(--ui-blue);
+  box-shadow: 0 2px 7px rgba(23, 43, 77, .18);
+}
+.stock-price-button {
+  min-height: 48px; padding: 10px 11px; border: 1px solid #aab8cc; border-radius: 10px; background: #fff;
+  color: var(--ui-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  box-shadow: 0 2px 7px rgba(23, 43, 77, .12);
+}
+.stock-price-button:hover { border-color: var(--ui-blue); color: var(--ui-blue); }
+
+.stock-view-switch {
+  grid-area: view; display: flex; align-items: center; gap: 4px; padding: 4px;
+  border: 1px solid var(--stock-blue-soft); border-radius: 13px; background: #fff;
+  box-shadow: 0 3px 10px rgba(24, 49, 66, .06);
+}
+.stock-view-button {
+  display: grid; place-items: center; width: 36px; height: 37px; border-radius: 9px; color: var(--ui-muted);
+}
+.stock-view-button svg { width: 21px; height: 21px; }
+.stock-view-button:hover { color: var(--ui-blue); }
+.stock-view-button.on { background: #e4f2ef; color: var(--ui-blue); box-shadow: inset 0 0 0 1px rgba(36, 77, 156, .32); }
+
+.stock-header-actions { grid-area: actions; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 9px; padding-top: 10px; }
+.stock-fab {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-width: 132px; height: 46px; padding: 0 15px;
+  border: 1px solid var(--ui-blue); border-radius: 12px; background: var(--ui-blue); color: #fff;
+  font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+  box-shadow: 0 5px 14px rgba(36, 77, 156, .22);
+}
+.stock-fab svg { flex: none; width: 18px; height: 18px; }
+.stock-fab:hover:not(:disabled) { filter: brightness(1.08); }
+.stock-fab-danger { border-color: #e8c8c4; background: #fff; color: #b33c34; box-shadow: 0 2px 7px rgba(70, 35, 30, .06); }
+.stock-fab-danger:hover:not(:disabled) { filter: none; background: #fdf3f2; }
+.stock-fab:disabled { cursor: not-allowed; opacity: .55; }
+.stock-fab:focus-visible, .stock-price-button:focus-visible, .stock-sections a:focus-visible, .stock-view-button:focus-visible,
+.stock-pill:focus-visible, .stock-pill-select:focus-visible, .stock-scan-helper button:focus-visible {
+  outline: 2px solid var(--ui-blue); outline-offset: 2px;
+}
+
 .stock-search-note { margin: 0; color: var(--ui-muted); }
 .stock-search-note strong { color: var(--ui-ink); overflow-wrap: anywhere; }
 
-.stock-filters { display: grid; gap: 10px; }
+/* ---------- Group pills (son.html's #tabs) ---------- */
+.stock-group-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stock-pill, .stock-pill-select {
+  padding: 7px 16px; border: 1px solid #d9e4e8; border-radius: 999px; background: #fff;
+  color: #183244; font: inherit; font-size: 14px; font-weight: 600; text-decoration: none;
+  box-shadow: 0 2px 5px rgba(24, 50, 68, .04), 0 8px 20px rgba(24, 50, 68, .043);
+}
+.stock-pill-select { padding: 8px 34px 8px 14px; cursor: pointer; appearance: none;
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23244D9C' stroke-width='1.8'/%3E%3C/svg%3E") no-repeat right 13px center / 11px;
+}
+.stock-pill:hover, .stock-pill-select:hover { border-color: #91a4bf; }
+.stock-pill.on, .stock-pill-select.on { border-color: #91a4bf; color: var(--ui-ink); }
+.stock-pill.on { background: var(--stock-blue-soft); color: var(--ui-blue); }
 
-/* ---------- Alerts ---------- */
+/* ---------- Alerts (son.html's .sugbox) ---------- */
 .stock-alerts {
-  border: 1px solid var(--ui-cream-line); border-radius: 14px; background: var(--ui-cream);
+  border: 1px solid #d9e4e8; border-radius: 14px; background: #fff;
+  box-shadow: 0 2px 5px rgba(24, 50, 68, .04), 0 8px 20px rgba(24, 50, 68, .043);
 }
-.stock-alerts summary { padding: 12px 16px; color: var(--ui-ink); font-weight: 700; cursor: pointer; }
-.stock-alerts ul { display: grid; gap: 2px; margin: 0; padding: 0 8px 10px; list-style: none; }
-.stock-alerts li {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
-  padding: 8px; border-radius: 10px; background: #fff;
+.stock-alerts summary {
+  display: flex; align-items: center; gap: 10px; padding: 13px 16px; list-style: none;
+  color: var(--ui-ink); font-size: 15px; font-weight: 700; cursor: pointer;
 }
-.stock-alerts li a { flex: 1 1 220px; color: var(--ui-blue); font-weight: 600; text-decoration: none; }
-.stock-alerts li a:hover { text-decoration: underline; }
-.stock-alert-count { color: var(--ui-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.stock-alerts summary::-webkit-details-marker { display: none; }
+.stock-alerts-badge {
+  display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 8px;
+  border-radius: 99px; background: #d92d20; color: #fff; font-size: 13px; font-weight: 800;
+}
+.stock-alerts-counts { color: var(--ui-blue); font-size: 12.5px; font-weight: 600; }
+.stock-alerts-chevron { margin-left: auto; color: var(--ui-blue); transition: transform .15s; }
+.stock-alerts[open] .stock-alerts-chevron { transform: rotate(180deg); }
+.stock-alerts ul { display: grid; margin: 0; padding: 0 8px 8px; list-style: none; border-top: 1px solid var(--ui-line); }
+.stock-alerts li a {
+  display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px;
+  color: var(--ui-ink); text-decoration: none;
+}
+.stock-alerts li a:hover { background: var(--ui-soft); }
+.stock-alert-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #d92d20; }
+.stock-alert-dot.warn { background: #f79009; }
+.stock-alert-text { display: grid; flex: 1 1 auto; min-width: 0; }
+.stock-alert-text b { font-size: 14px; }
+.stock-alert-text small { color: var(--ui-muted); font-size: 12px; }
+.stock-alert-pill { padding: 3px 9px; border-radius: 999px; background: #fdecea; color: #b42318; font-size: 12px; font-weight: 700; }
+.stock-alert-pill.warn { background: #fef4e6; color: #b54708; }
+.stock-alert-go { color: var(--ui-blue); font-size: 12px; font-weight: 700; white-space: nowrap; }
 
 /* ---------- Brand sections ---------- */
 .stock-brands { display: grid; gap: 22px; }
@@ -260,12 +362,19 @@
 
 /* ---------- Edit and remove (PR 4) ---------- */
 .stock-row-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+/* Row action ("Düzenle", "Kaldır"): the same soft blue chip family as "Kayıtları aç", one step smaller so a
+   table row stays calm. The danger variant is the same shape in the design's red. */
 .stock-link-button {
-  padding: 0; border: 0; background: none; color: var(--ui-blue);
-  font: 600 14px/1.3 inherit; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 11px;
+  border: 1px solid #d5e3f7; border-radius: 9px; background: var(--stock-blue-soft); color: var(--ui-blue);
+  font-family: inherit; font-size: 12px; font-weight: 750; line-height: 1; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s, transform .15s;
 }
-.stock-link-button:hover { text-decoration: underline; }
-.stock-link-button:focus-visible { outline: 2px solid var(--ui-blue); outline-offset: 2px; border-radius: 4px; }
+.stock-link-button svg { flex: none; width: 13px; height: 13px; }
+.stock-link-button:hover { border-color: #c9dbf7; background: #dde9fb; transform: translateY(-1px); }
+.stock-link-button:focus-visible { outline: 3px solid rgba(36, 77, 156, .25); outline-offset: 2px; }
+.stock-link-button.stock-link-danger { border-color: #f1d3cf; background: #fdf3f2; color: #b33c34; }
+.stock-link-button.stock-link-danger:hover { border-color: #e8c8c4; background: #fbe7e5; }
 
 
 .stock-photos { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--ui-line); }
@@ -352,4 +461,16 @@
 .stock-page .ui-modal {
   font-size: 15px; font-weight: 400; line-height: 1.5; text-align: left; text-transform: none;
   letter-spacing: normal; white-space: normal;
+}
+
+/* ---------- Toolbar on phones: one column, full-width buttons ---------- */
+@media (max-width: 600px) {
+  .stock-toolbar { grid-template-columns: minmax(0, 1fr); grid-template-areas: "search" "filters" "view" "actions"; }
+  .stock-view-switch { justify-self: start; }
+  .stock-sections { width: 100%; }
+  .stock-sections a { flex: 1 1 0; text-align: center; }
+  .stock-price-button { flex: 1 1 100%; }
+  .stock-header-actions { padding-top: 0; }
+  .stock-header-actions > .stock-fab { flex: 1 1 0; }
+  .stock-alert-go { display: none; }
 }
