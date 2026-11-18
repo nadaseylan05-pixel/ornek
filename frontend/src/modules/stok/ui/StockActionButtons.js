@@ -28,7 +28,7 @@ export function ModelEditButton({ model, details, openHref, serialLessCount = 0 
 
   return (
     <>
-      <button type="button" className="stock-link-button" onClick={click} aria-label={`${model.brandName} ${model.name} düzenle`}>
+      <button type="button" className="stock-small-button" onClick={click} aria-label={`${model.brandName} ${model.name} düzenle`}>
         Düzenle
       </button>
       {wanted && details && (

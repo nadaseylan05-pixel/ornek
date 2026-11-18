@@ -190,7 +190,8 @@ export default function EntryUnitsStep({ model, entry, setEntry, today, paymentM
           {sided && (
             <label className="ui-field" htmlFor="entry-common-side">
               <span className="ui-label">Taraf</span>
-              <select id="entry-common-side" className="ui-input" value={entry.commonSide} onChange={(event) => set("commonSide")(event.target.value)}>
+              <select id="entry-common-side" className="ui-input" required value={entry.commonSide} onChange={(event) => set("commonSide")(event.target.value)}>
+                <option value="" disabled>Taraf seçin</option>
                 {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
@@ -218,7 +219,8 @@ export default function EntryUnitsStep({ model, entry, setEntry, today, paymentM
                 {sided && (
                   <label className="ui-field">
                     <span className="ui-label">Taraf</span>
-                    <select className="ui-input" value={row.earSide} onChange={(event) => updateRow(index, "earSide", event.target.value)}>
+                    <select className="ui-input" required value={row.earSide} onChange={(event) => updateRow(index, "earSide", event.target.value)}>
+                      <option value="" disabled>Taraf seçin</option>
                       {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </label>

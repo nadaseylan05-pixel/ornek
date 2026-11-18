@@ -22,11 +22,11 @@ export async function listSummaryRows({ category, productIds }) {
   return check(await query.order("brand_name").order("name").order("product_id"));
 }
 
-// stock_summary has no brand id or GTIN, so they come from products.
+// stock_summary has no brand id, GTIN or package barcode, so they come from products.
 export async function listProductDetails(productIds) {
   if (!productIds.length) return [];
   const supabase = await createClient();
-  return check(await supabase.from("products").select("id, brand_id, gtin").in("id", productIds));
+  return check(await supabase.from("products").select("id, brand_id, gtin, package_barcode").in("id", productIds));
 }
 
 // All photo rows of the models, oldest first; the service keeps the first one per model.
@@ -38,13 +38,29 @@ export async function listPhotos(productIds) {
   );
 }
 
-// Sides of the units on the shelf, for the "Sağ 2 · Sol 1" split. Only devices and receivers ask.
-export async function listInStockSides(productIds) {
+// The API returns at most 1000 rows per request (Supabase "max rows"), so long lists are read page by page.
+const PAGE_SIZE = 1000;
+
+// Side and serial of every shelf unit of the listed models, oldest first: one query for the whole page
+// (read in pages of 1000), so the list never asks once per model. The service keeps the "Sağ 2 · Sol 1"
+// split, the first serial number and the unit count per model.
+export async function listShelfUnitBriefs(productIds) {
   if (!productIds.length) return [];
   const supabase = await createClient();
-  return check(
-    await supabase.from("stock_units").select("product_id, ear_side").in("product_id", productIds).eq("status", "in_stock")
-  );
+  const rows = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const page = check(
+      await supabase
+        .from("stock_units")
+        .select("product_id, ear_side, serial_no")
+        .in("product_id", productIds)
+        .eq("status", "in_stock")
+        .order("id")
+        .range(from, from + PAGE_SIZE - 1)
+    );
+    rows.push(...page);
+    if (page.length < PAGE_SIZE) return rows;
+  }
 }
 
 // The units of one model that are on the shelf, with where they came from.

@@ -10,6 +10,7 @@ import { createStockEntry, loadEntryModels } from "../server/actions";
 import {
   defaultSerialPolicy,
   entryError,
+  hasEarSides,
   newModelError,
   readStockQuery,
   stockGroupByCategory,
@@ -141,6 +142,7 @@ export default function StockEntryDialog({ options, initialGtin, onClose }) {
     const problem = entryError({
       units,
       serialPolicy: unitModel.serialPolicy,
+      sided: hasEarSides(unitModel.category),
       opening: entry.opening,
       priceMode: entry.priceMode,
       amount: entry.amount,
