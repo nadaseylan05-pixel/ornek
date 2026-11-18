@@ -434,14 +434,72 @@
 .stock-price-bar-text { flex: 1 1 280px; margin: 0; color: var(--ui-ink); font-size: 14px; overflow-wrap: anywhere; }
 .stock-price-bar-error { flex: 1 1 100%; margin: 0; }
 
-.stock-price-pick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.stock-price-models { display: grid; gap: 6px; max-height: 340px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
-.stock-price-models li {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px;
-  padding: 10px 12px; border: 1px solid var(--ui-line); border-radius: 12px; background: #fff;
+/* ---------- Price window (son.html's .md.wide "Fiyat güncelle") ----------
+   860 px wide, 22 px corners, the title's step in muted text, a blue lead line, one search box with the scan
+   chips, a framed scrolling list and the dark segmented method switch on step 2. */
+.ui-modal-lg:has(.stock-price-dialog) { width: min(860px, calc(100vw - 32px)); border-radius: 22px; }
+.ui-modal-lg:has(.stock-price-dialog) .ui-modal-head { padding: 24px 28px 6px; border-bottom: 0; }
+.ui-modal-lg:has(.stock-price-dialog) .ui-modal-head h2 { font-size: 22px; font-weight: 700; }
+.ui-modal-lg:has(.stock-price-dialog) .ui-modal-body { padding: 4px 28px 18px; }
+.ui-modal-lg:has(.stock-price-dialog) .ui-modal-foot { padding: 14px 28px 22px; }
+.stock-modal-step { color: var(--ui-muted); font-weight: 700; }
+.stock-modal-step.strong { color: var(--ui-blue); }
+.stock-price-dialog { display: grid; gap: 12px; }
+.stock-modal-lead { margin: 0; color: var(--ui-blue); font-size: 14px; }
+.stock-modal-hint { color: var(--ui-muted); font-size: 12px; }
+p.stock-modal-hint { margin: 0; }
+
+.stock-price-search { display: grid; gap: 5px; }
+.stock-price-search .ui-input { min-height: 44px; border-color: #91a4bf; border-radius: 12px; }
+.stock-price-pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.stock-price-pick-bar > span { flex: 1 1 auto; color: var(--ui-blue); font-size: 13px; font-weight: 600; }
+.stock-price-pick-bar .stock-link-button:disabled { cursor: default; opacity: .5; transform: none; }
+
+.stock-price-models {
+  max-height: 320px; margin: 0; padding: 0; overflow-y: auto; list-style: none;
+  border: 1px solid #d9e4e8; border-radius: 14px; background: #fff;
 }
-.stock-price-models li.on { border-color: var(--ui-blue); background: var(--ui-cream); }
-.stock-price-models .stock-entry-check { flex: 1 1 240px; min-width: 0; }
+.stock-price-models li + li { border-top: 1px solid #eef2f5; }
+.stock-price-models label {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  padding: 10px 14px; cursor: pointer;
+}
+.stock-price-models li:hover { background: #f7fafc; }
+.stock-price-models li.on { background: #edf4ff; }
+.stock-price-models input { width: 18px; height: 18px; accent-color: var(--ui-blue); }
+.stock-price-model-name { display: grid; min-width: 0; }
+.stock-price-model-name b { color: var(--ui-ink); font-size: 14px; }
+.stock-price-model-name small { color: var(--ui-blue); font-size: 12px; }
+.stock-price-model-price { color: var(--ui-ink); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.stock-price-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.stock-price-chips li {
+  padding: 4px 9px; border-radius: 999px; background: var(--stock-blue-soft, #eaf2ff); color: var(--ui-blue);
+  font-size: 12px; font-weight: 700;
+}
+.stock-price-modes { justify-self: start; }
+.stock-price-modes button {
+  padding: 10px 14px; border: 1px solid transparent; border-radius: 9px; background: none;
+  color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.stock-price-modes button:hover { background: rgba(255, 255, 255, .1); }
+.stock-price-modes button.on { border-color: #d5e3f7; background: #fff; color: var(--ui-blue); box-shadow: 0 2px 7px rgba(23, 43, 77, .18); }
+.stock-price-fields { display: grid; grid-template-columns: minmax(0, 1fr) 200px; align-items: start; gap: 12px; }
+.stock-price-fields.single { grid-template-columns: minmax(0, 1fr); }
+.stock-price-preview-empty {
+  margin: 0; padding: 14px 16px; border-radius: 12px; background: #f2f6f9; color: var(--ui-blue); font-size: 13px;
+}
+.stock-price-preview { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: #f2f6f9; }
+.stock-price-preview table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stock-price-preview th {
+  padding: 6px 8px; color: var(--ui-muted); font-size: 11px; font-weight: 700; letter-spacing: .05em;
+  text-align: left; text-transform: uppercase;
+}
+.stock-price-preview td { padding: 8px; border-top: 1px solid #dfe7ee; color: var(--ui-ink); }
+.stock-price-preview .ui-end { text-align: right; font-variant-numeric: tabular-nums; }
+@container stock-page (max-width: 610px) {
+  .stock-price-fields { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* ---------- Servis tab ---------- */
 .stock-services { display: grid; gap: 20px; }
