@@ -15,6 +15,15 @@ import { removeServiceItem } from "../server/actions";
 // Component, so only these buttons and their windows ship JavaScript. Each window is mounted only while
 // open, so every opening starts from the current server values.
 
+function PencilIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z" />
+      <path d="m13.5 6.5 4 4" />
+    </svg>
+  );
+}
+
 // "Düzenle" on a model row. The edit fields and photos are loaded for the open model only; on another row
 // the button first opens that model (?ac=) and the window appears once its details arrive.
 export function ModelEditButton({ model, details, openHref, serialLessCount = 0 }) {
@@ -50,6 +59,7 @@ export function UnitEditButton({ unit, model }) {
   return (
     <>
       <button type="button" className="stock-link-button" onClick={() => setOpen(true)} aria-label={`${label} düzenle`}>
+        <PencilIcon />
         Düzenle
       </button>
       {open && <UnitEditDialog unit={unit} model={model} onClose={() => setOpen(false)} />}
@@ -59,19 +69,26 @@ export function UnitEditButton({ unit, model }) {
 
 // "Stok sil" above the open model's units and in the toolbar. Without an open model there is nothing to
 // pick from, so the toolbar button stays disabled and says why.
-export function StockRemoveButton({ model, units, ghost = true }) {
+// variant "fab" is the design's large white toolbar button with the red trash icon.
+export function StockRemoveButton({ model, units, ghost = true, variant }) {
   const [open, setOpen] = useState(false);
   const disabled = !model || !units?.length;
   const hint = !model ? "Önce bir modelin kayıtlarını açın." : !units?.length ? "Bu modelin stokta birimi yok." : undefined;
+  const fab = variant === "fab";
   return (
     <>
       <button
         type="button"
-        className={`ui-button ${ghost ? "ui-button-ghost" : "ui-button-danger"}`}
+        className={fab ? "stock-fab stock-fab-danger" : `ui-button ${ghost ? "ui-button-ghost" : "ui-button-danger"}`}
         onClick={() => setOpen(true)}
         disabled={disabled}
         title={hint}
       >
+        {fab && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M3 6h18M8 6V4h8v2m-11 0 1 15h12l1-15M10 10v7m4-7v7" />
+          </svg>
+        )}
         Stok sil
       </button>
       {open && model && <StockRemoveDialog model={model} units={units} onClose={() => setOpen(false)} />}
@@ -80,11 +97,11 @@ export function StockRemoveButton({ model, units, ghost = true }) {
 }
 
 // "Fiyat güncelle" in the toolbar. The window loads the models itself when it opens.
-export function PriceUpdateButton() {
+export function PriceUpdateButton({ className = "ui-button ui-button-ghost" }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="ui-button ui-button-ghost" onClick={() => setOpen(true)}>
+      <button type="button" className={className} onClick={() => setOpen(true)}>
         ₺ Fiyat güncelle
       </button>
       {open && <PriceUpdateDialog onClose={() => setOpen(false)} />}
