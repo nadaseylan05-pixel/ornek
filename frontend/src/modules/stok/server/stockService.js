@@ -4,10 +4,10 @@ import {
   findProductIdsByGtin,
   findProductsByWord,
   listAlertRows,
-  listInStockSides,
   listInStockUnits,
   listPhotos,
   listProductDetails,
+  listShelfUnitBriefs,
   listSummaryRows,
 } from "./stockRepository";
 import { getProductForEdit, listProductPhotos } from "./catalogRepository";
@@ -20,6 +20,7 @@ import {
   searchTerms,
   stockGroupByKey,
   summarizeAlerts,
+  summarizeShelfUnits,
 } from "../stockRules";
 
 // Shapes the stock page: models of the chosen group (or the search results) grouped by brand, the brand
@@ -50,33 +51,35 @@ function toModel(row, details, photoPath) {
     cartons: row.cartons,
     totalBatteries: row.total_batteries,
     gtin: details?.gtin ?? null,
+    packageBarcode: details?.package_barcode ?? null,
     photoUrl: photoUrl(photoPath),
     earSides: null,
+    firstSerial: null,
+    shelfCount: 0,
   };
 }
 
-// stock_summary rows → page models with brand id, GTIN, first photo and (devices, receivers) the side split.
+// stock_summary rows → page models with brand id, GTIN, first photo, the first shelf serial with the unit
+// count and (devices, receivers) the side split.
 async function buildModels(summaryRows) {
   const ids = summaryRows.map((row) => row.product_id);
-  const sidedIds = summaryRows.filter((row) => hasEarSides(row.category)).map((row) => row.product_id);
-  const [details, photos, sides] = await Promise.all([
+  const [details, photos, shelfUnits] = await Promise.all([
     listProductDetails(ids),
     listPhotos(ids),
-    listInStockSides(sidedIds),
+    listShelfUnitBriefs(ids),
   ]);
 
   const detailsById = new Map(details.map((row) => [row.id, row]));
   const firstPhoto = new Map();
   for (const photo of photos) if (!firstPhoto.has(photo.product_id)) firstPhoto.set(photo.product_id, photo.storage_path);
-  const sidesById = new Map();
-  for (const unit of sides) {
-    if (!sidesById.has(unit.product_id)) sidesById.set(unit.product_id, []);
-    sidesById.get(unit.product_id).push(unit.ear_side);
-  }
+  const shelfById = summarizeShelfUnits(shelfUnits);
 
   return summaryRows.map((row) => {
     const model = toModel(row, detailsById.get(row.product_id), firstPhoto.get(row.product_id));
-    if (hasEarSides(row.category)) model.earSides = countEarSides(sidesById.get(row.product_id) ?? []);
+    const shelf = shelfById.get(row.product_id);
+    model.firstSerial = shelf?.firstSerial ?? null;
+    model.shelfCount = shelf?.unitCount ?? 0;
+    if (hasEarSides(row.category)) model.earSides = countEarSides(shelf?.sides ?? []);
     return model;
   });
 }

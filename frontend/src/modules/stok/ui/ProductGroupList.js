@@ -1,18 +1,18 @@
-import Link from "next/link";
-import DataTable from "@/modules/shared/ui/DataTable";
 import StatusBadge from "@/modules/shared/ui/StatusBadge";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/dates";
 import {
   brandHeading,
-  earSideLabel,
-  formatEarSides,
+  brandTotalText,
   formatStock,
+  modelTypeLabel,
   receiptLabel,
+  serialPreview,
   stockHref,
   stockLevelInfo,
 } from "../stockRules";
-import ProductCards, { ModelPhoto } from "./ProductCards";
+import ProductCards, { DetailsToggle, ModelPhoto } from "./ProductCards";
+import { SideChip, SideChips } from "./SideChips";
 import { ModelEditButton, StockRemoveButton, UnitEditButton } from "./StockActionButtons";
 
 // What the unit windows need from the model; the whole summary row would be sent to the browser otherwise.
@@ -20,49 +20,79 @@ function unitModel(model) {
   return { brandName: model.brandName, name: model.name, category: model.category, serialPolicy: model.serialPolicy };
 }
 
-function unitColumns(model) {
-  const forDialog = unitModel(model);
-  return [
-    { key: "serialNo", label: "Seri no", render: (unit) => unit.serialNo ?? `${unit.count} adet` },
-    { key: "earSide", label: "Taraf", render: (unit) => earSideLabel(unit.earSide) },
-    { key: "productionDate", label: "ÜRT tarihi", render: (unit) => formatDate(unit.productionDate) },
-    { key: "wsaCode", label: "WSA kodu" },
-    { key: "purchasePrice", label: "Alış fiyatı", align: "end", render: (unit) => formatMoney(unit.purchasePrice) },
-    { key: "receivedOn", label: "Giriş tarihi", render: (unit) => formatDate(unit.receivedOn) },
-    { key: "receipt", label: "Tedarikçi · fatura no", render: receiptLabel },
-    { key: "edit", label: "İşlem", render: (unit) => <UnitEditButton unit={unit} model={forDialog} /> },
-  ];
-}
-
 // Shelf units without a serial number, for the warning when the model's serial rule becomes "Zorunlu".
 function serialLessCount(units) {
   return units.reduce((sum, unit) => sum + (unit.serialNo ? 0 : unit.count), 0);
 }
 
-// The open model's shelf units. Serial-less units from one receipt arrive already merged ("8 adet").
-function UnitRows({ model, units }) {
-  return (
-    <div className="stock-units">
-      <div className="stock-units-actions">
-        <StockRemoveButton model={unitModel(model)} units={units} />
-      </div>
-      <DataTable
-        columns={unitColumns(model)}
-        rows={units}
-        caption={`${model.brandName} ${model.name} stoktaki kayıtlar`}
-        empty="Bu modelin stokta birimi yok."
-      />
-    </div>
-  );
+// "3 adet" as the design's soft pill; red when nothing is left.
+function StockPill({ model }) {
+  return <span className={`stock-qty${model.inStock > 0 ? "" : " empty"}`}>{formatStock(model)}</span>;
 }
 
-function StockCell({ model }) {
-  const sides = model.earSides ? formatEarSides(model.earSides) : "";
+// The open model's shelf units in the design's nested card. Sale price and package barcode belong to the
+// model, so every row repeats them (as the design does). Serial-less units from one receipt arrive already
+// merged ("8 adet"). A plain scrolling table, not DataTable: on phones the panel scrolls sideways instead of
+// turning every unit into a card.
+function UnitPanel({ model, units }) {
+  const forDialog = unitModel(model);
   return (
-    <span className="stock-cell">
-      <span>{formatStock(model)}</span>
-      {sides && <span className="stock-muted">{sides}</span>}
-    </span>
+    <div className="stock-panel">
+      <div className="stock-panel-head">
+        <div className="stock-panel-title">
+          <strong>{model.brandName} {model.name}</strong>
+          {/* Counts units, not rows: a merged "8 adet" row of serial-less units is eight records. */}
+          <span>{units.reduce((sum, unit) => sum + (unit.count ?? 1), 0)} cihaz / kayıt</span>
+        </div>
+        <div className="stock-panel-meta">
+          <StockPill model={model} />
+          <span className="stock-panel-price">
+            <small>Satış fiyatı</small>
+            <b>{formatMoney(model.salePrice)}</b>
+          </span>
+          <StockRemoveButton model={forDialog} units={units} />
+        </div>
+      </div>
+      {units.length ? (
+        <div className="stock-unit-scroll">
+          <table className="stock-unit-table">
+            <caption className="ui-visually-hidden">{`${model.brandName} ${model.name} stoktaki kayıtlar`}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Seri no</th>
+                <th scope="col">Sağ / Sol</th>
+                <th scope="col" className="ui-end">Satış fiyatı</th>
+                <th scope="col" className="ui-end">Alış fiyatı</th>
+                <th scope="col">Ambalaj barkodu</th>
+                <th scope="col">ÜRT tarihi</th>
+                <th scope="col">WSA kodu</th>
+                <th scope="col">Giriş tarihi</th>
+                <th scope="col">Tedarikçi</th>
+                <th scope="col">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {units.map((unit) => (
+                <tr key={unit.id}>
+                  <td className="stock-code">{unit.serialNo ?? `${unit.count} adet`}</td>
+                  <td><SideChip side={unit.earSide} /></td>
+                  <td className="ui-end">{formatMoney(model.salePrice)}</td>
+                  <td className="ui-end">{formatMoney(unit.purchasePrice)}</td>
+                  <td className="stock-code">{model.packageBarcode || "—"}</td>
+                  <td>{formatDate(unit.productionDate)}</td>
+                  <td>{unit.wsaCode || "—"}</td>
+                  <td>{formatDate(unit.receivedOn)}</td>
+                  <td>{receiptLabel(unit)}</td>
+                  <td><UnitEditButton unit={unit} model={forDialog} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="ui-table-empty">Bu modelin stokta birimi yok.</p>
+      )}
+    </div>
   );
 }
 
@@ -71,35 +101,44 @@ function ModelRow({ model, open, units, toggleHref, edit }) {
   return (
     <>
       <tr className={open ? "open" : undefined}>
-        <td className="stock-col-photo">
-          <ModelPhoto model={model} size={44} />
+        <td className="stock-col-model">
+          <span className="stock-model-cell">
+            <ModelPhoto model={model} size={44} />
+            <span>
+              <span className="stock-brand-name">{model.brandName}</span>
+              <strong className="stock-model-name">{model.name}</strong>
+            </span>
+          </span>
         </td>
-        <td data-label="Model">
-          <span className="stock-muted stock-brand-name">{model.brandName}</span>
-          <strong className="stock-model-name">{model.name}</strong>
+        <td data-label="Varyant / Ürün tipi">
+          <span className="stock-cell">
+            <span>{modelTypeLabel(model)}</span>
+            <SideChips counts={model.earSides} />
+          </span>
         </td>
-        <td data-label="Tip">{model.type || "—"}</td>
         <td data-label="Stok">
-          <StockCell model={model} />
+          <span className="stock-cell">
+            <StockPill model={model} />
+            {model.stockLevel !== "ok" && <StatusBadge tone={level.tone}>{level.label}</StatusBadge>}
+          </span>
         </td>
-        <td data-label="GTIN" className="stock-code">{model.gtin || "—"}</td>
-        <td data-label="Satış fiyatı" className="ui-end">{formatMoney(model.salePrice)}</td>
-        <td data-label="Durum">
-          <StatusBadge tone={level.tone}>{level.label}</StatusBadge>
+        <td data-label="Ürün barkodu / Seri">
+          <span className="stock-cell">
+            <span className="stock-code">{model.gtin || "—"}</span>
+            <small className="stock-serial">{serialPreview({ firstSerial: model.firstSerial, unitCount: model.shelfCount })}</small>
+          </span>
         </td>
         <td className="stock-col-action">
           <span className="stock-row-actions">
+            <DetailsToggle href={toggleHref} open={open} />
             {edit}
-            <Link className="stock-toggle" href={toggleHref} scroll={false}>
-              {open ? "Kayıtları kapat" : "Kayıtları aç"}
-            </Link>
           </span>
         </td>
       </tr>
       {open && (
         <tr className="stock-units-row">
-          <td colSpan={8}>
-            <UnitRows model={model} units={units} />
+          <td colSpan={5}>
+            <UnitPanel model={model} units={units} />
           </td>
         </tr>
       )}
@@ -114,14 +153,11 @@ function ModelTable({ group, openProductId, openUnits, hrefFor, editFor }) {
         <caption className="ui-visually-hidden">{brandHeading(group)}</caption>
         <thead>
           <tr>
-            <th scope="col"><span className="ui-visually-hidden">Fotoğraf</span></th>
-            <th scope="col">Model</th>
-            <th scope="col">Tip</th>
+            <th scope="col">Marka / Model</th>
+            <th scope="col">Varyant / Ürün tipi</th>
             <th scope="col">Stok</th>
-            <th scope="col">GTIN</th>
-            <th scope="col" className="ui-end">Satış fiyatı</th>
-            <th scope="col">Durum</th>
-            <th scope="col"><span className="ui-visually-hidden">Kayıtlar</span></th>
+            <th scope="col">Ürün barkodu / Seri</th>
+            <th scope="col">Ayrıntılar</th>
           </tr>
         </thead>
         <tbody>
@@ -141,8 +177,7 @@ function ModelTable({ group, openProductId, openUnits, hrefFor, editFor }) {
   );
 }
 
-// One section per brand: "Bernafon · 4 model · 13 cihaz", then the models as a table or as cards.
-// "Kayıtları aç" is a link that sets ?ac=, so the open model survives a refresh and needs no client code.
+// One section per brand: "Bernafon" with "Toplam: 4 model · 13 cihaz", then the models as a table or cards.
 // Only the "Düzenle" and "Stok sil" buttons are client components (StockActionButtons.js).
 export default function ProductGroupList({ brandGroups, query, openProductId, openUnits, openDetails }) {
   const hrefFor = (model) => stockHref(query, { ac: model.productId === openProductId ? null : model.productId });
@@ -164,11 +199,14 @@ export default function ProductGroupList({ brandGroups, query, openProductId, op
         const openModel = group.models.find((model) => model.productId === openProductId);
         return (
           <section key={group.brandId ?? group.brandName} className="stock-brand">
-            <h2>{brandHeading(group)}</h2>
+            <h2>
+              <span className="stock-brand-title">{group.brandName}</span>{" "}
+              <span className="stock-brand-total">{brandTotalText(group)}</span>
+            </h2>
             {query.gorunum === "kart" ? (
               <>
                 <ProductCards models={group.models} openProductId={openProductId} hrefFor={hrefFor} editFor={editFor} />
-                {openModel && <UnitRows model={openModel} units={openUnits} />}
+                {openModel && <UnitPanel model={openModel} units={openUnits} />}
               </>
             ) : (
               <ModelTable

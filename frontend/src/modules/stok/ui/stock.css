@@ -36,27 +36,76 @@
 /* ---------- Brand sections ---------- */
 .stock-brands { display: grid; gap: 22px; }
 .stock-brand { display: grid; gap: 10px; min-width: 0; }
-.stock-brand h2 { margin: 0; color: var(--ui-ink); font-size: 17px; }
+.stock-brand h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 2px; font-size: 15px; }
+.stock-brand-title { color: var(--ui-ink); font-weight: 800; }
+.stock-brand-total { color: var(--ui-blue); font-size: 13px; font-weight: 600; }
 
-/* ---------- Model table ---------- */
-.stock-table-wrap { overflow-x: auto; border: 1px solid var(--ui-line); border-radius: 14px; background: #fff; }
-.stock-models { width: 100%; border-collapse: collapse; font-size: 14px; }
-.stock-models > thead > tr > th {
-  padding: 11px 14px; background: var(--ui-soft); color: var(--ui-muted);
-  font-size: 12px; font-weight: 700; letter-spacing: .04em; text-align: left; text-transform: uppercase; white-space: nowrap;
+/* ---------- Model table (the design's .sg-table on the stock page) ----------
+   Design values kept where the panel has no token: soft blue #eaf2ff (toggle, panel border), cream
+   #fff9e7 (open row) and the chip colours. Everything else maps to the --ui-* tokens. */
+.stock-page {
+  --stock-blue-soft: #eaf2ff;
+  --stock-open: #fff9e7;
+  --stock-shadow: 0 1px 2px rgba(23, 43, 77, .05), 0 5px 16px rgba(23, 43, 77, .045);
 }
-.stock-models > tbody > tr > td { padding: 10px 14px; border-top: 1px solid var(--ui-line); vertical-align: middle; }
+.stock-table-wrap {
+  overflow-x: auto; border: 1px solid var(--ui-line); border-radius: 17px; background: #fff; box-shadow: var(--stock-shadow);
+}
+.stock-models { width: 100%; min-width: 890px; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.stock-models > thead > tr > th {
+  padding: 15px 17px; border-bottom: 1px solid var(--ui-line); background: var(--ui-soft); color: var(--ui-muted);
+  font-size: 11px; font-weight: 700; letter-spacing: .065em; text-align: left; text-transform: uppercase; white-space: nowrap;
+}
+.stock-models > tbody > tr > td { padding: 14px 17px; border-bottom: 1px solid var(--ui-line); vertical-align: middle; }
+.stock-models > tbody > tr:last-child > td { border-bottom: 0; }
+.stock-models > tbody > tr:not(.stock-units-row):hover > td { background: #fffaf0; }
+.stock-models > tbody > tr.open > td { background: var(--stock-open); border-bottom-color: transparent; }
 .stock-models .ui-end { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.stock-models > tbody > tr.open > td { background: var(--ui-soft); }
-.stock-brand-name { display: block; }
-.stock-cell { display: grid; gap: 2px; }
-.stock-model-name { display: block; color: var(--ui-ink); }
-.stock-col-photo { width: 64px; }
-.stock-col-action { text-align: right; white-space: nowrap; }
-.stock-models > tbody > tr.stock-units-row > td { padding: 12px 14px 16px; background: var(--ui-soft); }
 
-.stock-toggle { color: var(--ui-blue); font-weight: 600; text-decoration: none; white-space: nowrap; }
-.stock-toggle:hover { text-decoration: underline; }
+.stock-model-cell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.stock-brand-name { display: block; margin-bottom: 3px; color: var(--ui-blue); font-size: 11px; font-weight: 800; }
+.stock-model-name { display: block; min-width: 165px; max-width: 260px; color: var(--ui-ink); font-size: 14px; line-height: 1.35; }
+.stock-cell { display: grid; justify-items: start; gap: 6px; }
+.stock-serial { display: block; color: var(--ui-blue); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+.stock-col-action { white-space: nowrap; }
+
+/* Count pill (.sg-qty): green soft pill, red when nothing is left. */
+.stock-qty {
+  display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #e3f4ec; color: var(--ui-ok);
+  font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stock-qty.empty { background: #fde8e6; color: var(--ui-danger); }
+
+/* Ear-side chips (.sg-side-chip). */
+.stock-sides { display: flex; flex-wrap: wrap; gap: 5px; }
+.stock-side {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 750; white-space: nowrap;
+}
+.stock-side b { font-variant-numeric: tabular-nums; }
+.stock-side-right { background: #e8f5ed; color: var(--ui-ok); }
+.stock-side-left { background: #edf2ff; color: #385d9c; }
+.stock-side-both, .stock-side-none { background: #eef1f5; color: var(--ui-muted); }
+
+/* "Kayıtları aç ⌄" (.sg-detail-toggle). */
+.stock-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 8px 12px;
+  border: 1px solid var(--stock-blue-soft); border-radius: 10px; background: var(--stock-blue-soft); color: var(--ui-blue);
+  font-size: 12px; font-weight: 750; text-decoration: none; white-space: nowrap;
+  transition: background .16s, border-color .16s, transform .16s;
+}
+.stock-toggle:hover { border-color: #c9dbf7; background: #dde9fb; transform: translateY(-1px); }
+.stock-toggle:focus-visible { outline: 3px solid rgba(36, 77, 156, .25); outline-offset: 2px; }
+.stock-toggle-arrow { font-size: 13px; line-height: 1; }
+
+/* "Düzenle" next to it: a small secondary button. */
+.stock-small-button {
+  display: inline-flex; align-items: center; min-height: 38px; padding: 8px 12px;
+  border: 1px solid var(--ui-line); border-radius: 10px; background: #fff; color: var(--ui-ink);
+  font: 700 12px/1.2 inherit; white-space: nowrap; cursor: pointer;
+}
+.stock-small-button:hover { background: var(--ui-soft); }
+.stock-small-button:focus-visible { outline: 3px solid rgba(36, 77, 156, .25); outline-offset: 2px; }
 
 .stock-photo { display: block; flex: none; border-radius: 10px; background: var(--ui-soft); object-fit: cover; }
 .stock-photo-empty {
@@ -64,7 +113,31 @@
   color: var(--ui-muted); font-weight: 700; text-transform: uppercase;
 }
 
-.stock-units { min-width: 0; }
+/* ---------- Open model: nested card under the row (.sg-expanded-row / .sg-expanded-card) ---------- */
+.stock-models > tbody > tr.stock-units-row > td { padding: 0 18px 18px; background: var(--stock-open); vertical-align: top; }
+.stock-panel {
+  display: grid; gap: 12px; min-width: 0; padding: 15px;
+  border: 1px solid var(--stock-blue-soft); border-radius: 14px; background: #fff;
+  box-shadow: 0 5px 16px rgba(23, 43, 77, .08);
+}
+.stock-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; }
+.stock-panel-title strong { display: block; color: var(--ui-blue); font-size: 14px; }
+.stock-panel-title span { display: block; margin-top: 3px; color: var(--ui-muted); font-size: 11px; }
+.stock-panel-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.stock-panel-price { display: inline-flex; align-items: baseline; gap: 6px; }
+.stock-panel-price small { color: var(--ui-muted); font-size: 11px; font-weight: 700; }
+.stock-panel-price b { color: var(--ui-ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+.stock-unit-scroll { max-height: 340px; overflow: auto; border: 1px solid var(--ui-line); border-radius: 10px; }
+.stock-unit-table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.stock-unit-table th {
+  position: sticky; top: 0; z-index: 1; padding: 8px 10px; border-bottom: 1px solid var(--ui-line);
+  background: #f5f7f9; color: var(--ui-muted); font-size: 11px; font-weight: 700; text-align: left; white-space: nowrap;
+}
+.stock-unit-table td { padding: 8px 10px; border-bottom: 1px solid var(--ui-line); color: var(--ui-ink); vertical-align: middle; white-space: nowrap; }
+.stock-unit-table tbody tr:last-child td { border-bottom: 0; }
+.stock-unit-table .ui-end { text-align: right; font-variant-numeric: tabular-nums; }
+.stock-unit-table .stock-code { font-size: 12px; }
 
 /* ---------- Card view ---------- */
 .stock-cards {
@@ -72,41 +145,52 @@
   margin: 0; padding: 0; list-style: none;
 }
 .stock-card {
-  display: grid; gap: 10px; padding: 12px;
-  border: 1px solid var(--ui-line); border-radius: 14px; background: #fff;
+  display: grid; align-content: start; gap: 10px; padding: 12px;
+  border: 1px solid var(--ui-line); border-radius: 14px; background: #fff; box-shadow: var(--stock-shadow);
 }
-.stock-card.open { border-color: var(--ui-blue); }
+.stock-card.open { border-color: var(--ui-blue); background: var(--stock-open); }
 .stock-card .stock-photo { width: 100%; height: auto; aspect-ratio: 4 / 3; }
-.stock-card-body { display: grid; justify-items: start; gap: 4px; }
-.stock-card-body strong { color: var(--ui-ink); }
+.stock-card-body { display: grid; justify-items: start; gap: 5px; min-width: 0; }
+.stock-card-body > strong { color: var(--ui-ink); }
+.stock-card-body .stock-brand-name { margin-bottom: 0; }
+.stock-card-stock { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stock-card-body .stock-row-actions { justify-content: flex-start; margin-top: 4px; }
 .stock-price { font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* ---------- Phones: model rows become cards (the unit table inside uses DataTable's own card layout) ---------- */
+/* ---------- Phones: model rows become cards; the unit panel inside scrolls sideways ---------- */
 @media (max-width: 600px) {
   .stock-search { flex-basis: 100%; }
   .stock-toolbar { align-items: stretch; }
 
-  .stock-table-wrap { border: 0; background: transparent; }
+  .stock-table-wrap { overflow: visible; border: 0; background: transparent; box-shadow: none; }
+  .stock-models { min-width: 0; }
   .stock-models > thead { display: none; }
   .stock-models, .stock-models > tbody, .stock-models > tbody > tr, .stock-models > tbody > tr > td { display: block; width: 100%; }
   .stock-models > tbody > tr {
-    position: relative; margin-bottom: 10px; padding: 8px 0;
-    border: 1px solid var(--ui-line); border-radius: 14px; background: #fff;
+    margin-bottom: 10px; padding: 8px 0;
+    border: 1px solid var(--ui-line); border-radius: 14px; background: #fff; box-shadow: var(--stock-shadow);
   }
-  .stock-models > tbody > tr > td {
-    display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
-    padding: 6px 14px; border: 0; text-align: right;
+  .stock-models > tbody > tr.open { border-color: var(--ui-blue); background: var(--stock-open); }
+  .stock-models > tbody > tr > td, .stock-models > tbody > tr:last-child > td {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    padding: 7px 14px; border: 0; background: transparent; text-align: right;
   }
+  .stock-models > tbody > tr:not(.stock-units-row):hover > td,
+  .stock-models > tbody > tr.open > td { background: transparent; }
   .stock-models > tbody > tr > td[data-label]::before {
-    content: attr(data-label); color: var(--ui-muted); font-size: 12px; font-weight: 700; text-align: left;
+    content: attr(data-label); flex: none; max-width: 45%; color: var(--ui-muted); font-size: 11px; font-weight: 700; text-align: left;
   }
-  .stock-cell { justify-items: end; }
-  .stock-models > tbody > tr > td:nth-child(2) { display: block; padding-right: 72px; text-align: left; }
-  .stock-models > tbody > tr > td:nth-child(2)::before { content: none; }
-  .stock-col-photo { position: absolute; top: 10px; right: 0; width: auto; }
-  .stock-col-action { justify-content: flex-end; }
-  .stock-models > tbody > tr.stock-units-row { margin-top: -6px; padding: 0; border: 0; background: transparent; }
-  .stock-models > tbody > tr.stock-units-row > td { display: block; padding: 0; background: transparent; }
+  .stock-models .stock-cell { justify-items: end; }
+  .stock-models .stock-sides { justify-content: flex-end; }
+  .stock-models > tbody > tr > td.stock-col-model { display: block; text-align: left; }
+  .stock-model-name { min-width: 0; max-width: none; }
+  .stock-models > tbody > tr > td.stock-col-action { justify-content: flex-start; }
+  .stock-col-action .stock-row-actions { justify-content: flex-start; }
+  .stock-models > tbody > tr.stock-units-row { margin-top: -4px; padding: 0; border: 0; background: transparent; box-shadow: none; }
+  .stock-models > tbody > tr.stock-units-row > td { display: block; padding: 0; background: transparent; text-align: left; }
+  .stock-panel { padding: 12px; }
+  .stock-panel-meta { width: 100%; }
+  .stock-unit-scroll { max-height: none; }
 }
 
 /* ---------- Toolbar actions and empty state ---------- */
@@ -175,7 +259,7 @@
 }
 
 /* ---------- Edit and remove (PR 4) ---------- */
-.stock-row-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 14px; }
+.stock-row-actions { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
 .stock-link-button {
   padding: 0; border: 0; background: none; color: var(--ui-blue);
   font: 600 14px/1.3 inherit; cursor: pointer; white-space: nowrap;
@@ -183,8 +267,6 @@
 .stock-link-button:hover { text-decoration: underline; }
 .stock-link-button:focus-visible { outline: 2px solid var(--ui-blue); outline-offset: 2px; border-radius: 4px; }
 
-.stock-units { display: grid; gap: 8px; }
-.stock-units-actions { display: flex; justify-content: flex-end; }
 
 .stock-photos { display: grid; gap: 10px; padding-top: 14px; border-top: 1px solid var(--ui-line); }
 .stock-photos-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
@@ -218,8 +300,6 @@
 .stock-remove-summary { flex: 1 1 auto; margin: 0; color: var(--ui-ink); font-weight: 700; }
 
 @media (max-width: 600px) {
-  .stock-units-actions { justify-content: stretch; }
-  .stock-units-actions .ui-button { width: 100%; }
   .stock-remove-units ul { max-height: none; }
   .stock-remove-count { flex-basis: 100%; }
   .stock-remove-summary { flex-basis: 100%; }
