@@ -94,7 +94,16 @@ export default function PhotoManager({ productId, photos }) {
           ))}
         </ul>
       ) : (
-        <p className="stock-muted">Bu modelin fotoğrafı yok. İlk fotoğraf listede küçük resim olarak görünür.</p>
+        // An empty state that is itself the upload target, so the first photo is one click away.
+        <button type="button" className="stock-photo-empty" onClick={() => input.current?.click()} disabled={busy}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2.5" />
+            <circle cx="9" cy="10" r="1.8" />
+            <path d="m21 16-5-5-8 8" />
+          </svg>
+          <b>Fotoğraf ekleyin</b>
+          <small>JPEG, PNG ya da WebP. Yüklemeden önce küçültülür; ilk fotoğraf listede görünür.</small>
+        </button>
       )}
       {error && <p className="ui-error" role="alert">{error}</p>}
 

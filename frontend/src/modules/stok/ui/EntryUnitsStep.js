@@ -12,7 +12,30 @@ import {
   sameGtin,
   serialPolicyLabel,
   splitTotalCost,
+  stockGroupByCategory,
 } from "../stockRules";
+
+// Two-option switches (entry type, price mode) as one segmented control instead of loose chips.
+function Segment({ label, value, options, onChange }) {
+  return (
+    <div className="ui-field">
+      <span className="ui-label">{label}</span>
+      <div className="stock-segment" role="group" aria-label={label}>
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className={value === option.value ? "on" : undefined}
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 import { addSupplier } from "../server/actions";
 import PickOrAdd from "./PickOrAdd";
 
@@ -149,120 +172,68 @@ export default function EntryUnitsStep({ model, entry, setEntry, today, paymentM
   }
 
   const preview = pricePreview(entry, count);
+  const group = stockGroupByCategory(model.category);
 
+  // The design's order: what is being entered, how it was bought, then the barcodes and serial numbers.
   return (
-    <div className="ui-stack">
-      <p className="stock-entry-summary">
-        <strong>{model.name}</strong>
-        <span className="stock-muted"> · Seri no: {serialPolicyLabel(policy)}{model.gtin ? ` · GTIN ${model.gtin}` : ""}</span>
-      </p>
+    <div className="stock-entry-step">
+      <header className="stock-entry-step-head">
+        <h3>Ürünü stoğa kaydet</h3>
+      </header>
 
-      <fieldset className="stock-entry-choices">
-        <legend className="ui-label">Giriş türü</legend>
-        {[
-          { value: "single", label: "Tekli giriş" },
-          { value: "bulk", label: "Toplu giriş" },
-        ].map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={`stock-entry-choice${entry.mode === option.value ? " on" : ""}`}
-            aria-pressed={entry.mode === option.value}
-            onClick={() => setMode(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </fieldset>
-
-      {entry.mode === "bulk" && (
-        <div className="stock-entry-inline">
-          <label className="ui-field" htmlFor="entry-count">
-            <span className="ui-label">Stok adedi{model.category === "battery" ? " (paket)" : ""}</span>
-            <input id="entry-count" className="ui-input stock-entry-count" type="number" min={1} max={MAX_ENTRY_UNITS} value={count} onChange={(event) => setCount(event.target.value)} />
-          </label>
-          {model.category === "battery" && <PackCalculator model={model} onApply={setCount} />}
+      <section className="stock-entry-panel stock-entry-model-info" aria-label="Kayıtlı model bilgileri">
+        <div className="stock-entry-model-name">
+          <small>{model.isNew ? "Yeni model" : "Seçilen model"}</small>
+          <b>{model.name}</b>
         </div>
-      )}
+        <dl className="stock-entry-facts">
+          <div><dt>Ürün grubu</dt><dd>{group.label}</dd></div>
+          <div><dt>Seri numarası</dt><dd>{serialPolicyLabel(policy)}</dd></div>
+          <div><dt>Ürün barkodu (GTIN)</dt><dd>{model.gtin || "—"}</dd></div>
+        </dl>
+      </section>
 
-      {policy === "none" ? (
+      <section className="stock-entry-panel" aria-labelledby="entry-purchase-title">
+        <h4 id="entry-purchase-title">Alış ve stok bilgileri</h4>
         <div className="stock-entry-grid">
-          {sided && (
-            <label className="ui-field" htmlFor="entry-common-side">
-              <span className="ui-label">Taraf</span>
-              <select id="entry-common-side" className="ui-input" required value={entry.commonSide} onChange={(event) => set("commonSide")(event.target.value)}>
-                <option value="" disabled>Taraf seçin</option>
-                {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
+          <Segment
+            label="Giriş türü"
+            value={entry.mode}
+            onChange={setMode}
+            options={[
+              { value: "single", label: "Tekli giriş" },
+              { value: "bulk", label: "Toplu giriş" },
+            ]}
+          />
+          {entry.mode === "bulk" ? (
+            <div className="stock-entry-inline">
+              <label className="ui-field" htmlFor="entry-count">
+                <span className="ui-label">Stok adedi{model.category === "battery" ? " (paket)" : ""}</span>
+                <input id="entry-count" className="ui-input stock-entry-count" type="number" min={1} max={MAX_ENTRY_UNITS} value={count} onChange={(event) => setCount(event.target.value)} />
+              </label>
+              {model.category === "battery" && <PackCalculator model={model} onApply={setCount} />}
+            </div>
+          ) : (
+            <span aria-hidden="true" />
           )}
-          <label className="ui-field" htmlFor="entry-common-date">
-            <span className="ui-label">ÜRT tarihi (isteğe bağlı)</span>
-            <input id="entry-common-date" className="ui-input" type="date" max={today} value={entry.commonDate} onChange={(event) => set("commonDate")(event.target.value)} />
+
+          <label className="stock-entry-check stock-entry-wide stock-entry-opening">
+            <input type="checkbox" checked={entry.opening} onChange={(event) => set("opening")(event.target.checked)} />
+            <span>
+              <strong>Açılış stoğu</strong>
+              <small>Panelden önce alınmış ürün; kasa defterine gider yazılmaz.</small>
+            </span>
           </label>
-          <p className="stock-entry-hint stock-entry-wide">Bu model seri numarasız takip edilir; birimler adet olarak eklenir.</p>
-        </div>
-      ) : (
-        <div className="ui-stack">
-          <ScanInput label="Seri no okut" placeholder="Etiketi okutun; her okutma bir sonraki boş satırı doldurur" onScan={handleScan} />
-          {scanNote && (
-            <p className={`stock-entry-note ${scanNote.tone}`} role={scanNote.tone === "warn" ? "alert" : "status"}>{scanNote.text}</p>
-          )}
-          <ol className="stock-entry-rows">
-            {entry.rows.map((row, index) => (
-              <li key={row.key} className="stock-entry-row">
-                <span className="stock-entry-row-no" aria-hidden="true">{index + 1}</span>
-                <label className="ui-field">
-                  <span className="ui-label">Seri no{policy === "optional" ? " (isteğe bağlı)" : ""}</span>
-                  <input className="ui-input" value={row.serialNo} maxLength={60} autoComplete="off" spellCheck={false} onChange={(event) => updateRow(index, "serialNo", event.target.value)} />
-                </label>
-                {sided && (
-                  <label className="ui-field">
-                    <span className="ui-label">Taraf</span>
-                    <select className="ui-input" required value={row.earSide} onChange={(event) => updateRow(index, "earSide", event.target.value)}>
-                      <option value="" disabled>Taraf seçin</option>
-                      {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                  </label>
-                )}
-                <label className="ui-field">
-                  <span className="ui-label">ÜRT tarihi</span>
-                  <input className="ui-input" type="date" max={today} value={row.productionDate} onChange={(event) => updateRow(index, "productionDate", event.target.value)} />
-                </label>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
 
-      <section className="stock-entry-purchase ui-stack" aria-label="Alış">
-        <label className="stock-entry-check">
-          <input type="checkbox" checked={entry.opening} onChange={(event) => set("opening")(event.target.checked)} />
-          <span>
-            <strong>Açılış stoğu</strong>
-            <span className="stock-entry-hint"> Panelden önce alınmış ürün; kasa defterine gider yazılmaz.</span>
-          </span>
-        </label>
-
-        <fieldset className="stock-entry-choices">
-          <legend className="ui-label">Alış fiyatı</legend>
-          {[
-            { value: "unit", label: "Birim alış fiyatı" },
-            { value: "total", label: "Toplam alış tutarı" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`stock-entry-choice${entry.priceMode === option.value ? " on" : ""}`}
-              aria-pressed={entry.priceMode === option.value}
-              onClick={() => set("priceMode")(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </fieldset>
-
-        <div className="stock-entry-grid">
+          <Segment
+            label="Alış fiyatı"
+            value={entry.priceMode}
+            onChange={set("priceMode")}
+            options={[
+              { value: "unit", label: "Birim alış fiyatı" },
+              { value: "total", label: "Toplam alış tutarı" },
+            ]}
+          />
           <div className="ui-field">
             <MoneyInput
               id="entry-amount"
@@ -291,7 +262,7 @@ export default function EntryUnitsStep({ model, entry, setEntry, today, paymentM
                 onChange={set("supplierId")}
                 onAdd={(name) => addSupplier({ name })}
                 onAdded={onSupplierAdded}
-                addLabel="Yeni tedarikçi"
+                addLabel="Yeni"
                 placeholder="Tedarikçi adı"
               />
               <label className="ui-field" htmlFor="entry-invoice">
@@ -309,6 +280,60 @@ export default function EntryUnitsStep({ model, entry, setEntry, today, paymentM
             </>
           )}
         </div>
+      </section>
+
+      <section className="stock-entry-panel" aria-labelledby="entry-serial-title">
+        <h4 id="entry-serial-title">Barkod ve seri bilgileri</h4>
+        {policy === "none" ? (
+          <div className="stock-entry-grid">
+            {sided && (
+              <label className="ui-field" htmlFor="entry-common-side">
+                <span className="ui-label">Taraf</span>
+                <select id="entry-common-side" className="ui-input" required value={entry.commonSide} onChange={(event) => set("commonSide")(event.target.value)}>
+                  <option value="" disabled>Taraf seçin</option>
+                  {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="ui-field" htmlFor="entry-common-date">
+              <span className="ui-label">ÜRT tarihi (isteğe bağlı)</span>
+              <input id="entry-common-date" className="ui-input" type="date" max={today} value={entry.commonDate} onChange={(event) => set("commonDate")(event.target.value)} />
+            </label>
+            <p className="stock-entry-hint stock-entry-wide">Bu model seri numarasız takip edilir; birimler adet olarak eklenir.</p>
+          </div>
+        ) : (
+          <div className="stock-entry-serials">
+            <ScanInput label="Seri no okut" placeholder="Etiketi okutun; her okutma bir sonraki boş satırı doldurur" onScan={handleScan} />
+            {scanNote && (
+              <p className={`stock-entry-note ${scanNote.tone}`} role={scanNote.tone === "warn" ? "alert" : "status"}>{scanNote.text}</p>
+            )}
+            <ol className="stock-entry-rows">
+              {entry.rows.map((row, index) => (
+                <li key={row.key} className={`stock-entry-row${sided ? "" : " unsided"}`}>
+                  <span className="stock-entry-row-no" aria-hidden="true">{index + 1}</span>
+                  <label className="ui-field">
+                    <span className="ui-label">Seri no{policy === "optional" ? " (isteğe bağlı)" : ""}</span>
+                    <input className="ui-input" value={row.serialNo} maxLength={60} autoComplete="off" spellCheck={false} onChange={(event) => updateRow(index, "serialNo", event.target.value)} />
+                  </label>
+                  {sided && (
+                    <label className="ui-field">
+                      <span className="ui-label">Taraf</span>
+                      <select className="ui-input" required value={row.earSide} onChange={(event) => updateRow(index, "earSide", event.target.value)}>
+                        <option value="" disabled>Taraf seçin</option>
+                        {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <label className="ui-field">
+                    <span className="ui-label">ÜRT tarihi</span>
+                    <input className="ui-input" type="date" max={today} value={row.productionDate} onChange={(event) => updateRow(index, "productionDate", event.target.value)} />
+                  </label>
+                </li>
+              ))}
+            </ol>
+            <p className="stock-entry-hint">GS1 etiketi okutulursa seri no ve üretim tarihi kendiliğinden ayrılır.</p>
+          </div>
+        )}
       </section>
     </div>
   );

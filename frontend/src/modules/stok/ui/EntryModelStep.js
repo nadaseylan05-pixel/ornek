@@ -65,48 +65,52 @@ function NewModelForm({ draft, setDraft, brands, onBrandAdded }) {
   );
 }
 
-// Step 2: an existing model of the group (and brand), or a new one.
-export default function EntryModelStep({ category, models, choice, onChoice, draft, setDraft, brands, onBrandAdded }) {
+// Step 2 as in the design: "Bernafon · Model seçimi", a dashed "＋ Yeni model oluştur" card, then the
+// existing models as two-column cards. A model card moves on at once; the new-model card opens the form.
+export default function EntryModelStep({ title, category, models, choice, onChoice, draft, setDraft, brands, onBrandAdded }) {
   const unitWord = stockGroupByCategory(category).unitWord;
 
   return (
-    <div className="ui-stack">
+    <div className="stock-entry-step">
+      <header className="stock-entry-step-head">
+        <h3>{title} · Model seçimi</h3>
+        <p>Mevcut bir modeli seçerseniz adı, tipi ve fiyatı otomatik gelir.</p>
+      </header>
+
+      <button
+        type="button"
+        className={`stock-new-model${choice === "new" ? " on" : ""}`}
+        aria-expanded={choice === "new"}
+        onClick={() => onChoice("new")}
+      >
+        <b>＋ Yeni model oluştur</b>
+        <small>İlk kez kaydedilecek ürün</small>
+      </button>
+
+      {choice === "new" && draft && <NewModelForm draft={draft} setDraft={setDraft} brands={brands} onBrandAdded={onBrandAdded} />}
+
       {models.length > 0 ? (
-        <ul className="stock-entry-models" aria-label="Kayıtlı modeller">
+        <ul className="stock-model-cards" aria-label="Kayıtlı modeller">
           {models.map((model) => (
             <li key={model.id}>
-              <button
-                type="button"
-                className={`stock-entry-model${choice === model.id ? " on" : ""}`}
-                aria-pressed={choice === model.id}
-                onClick={() => onChoice(model.id)}
-              >
-                <span>
-                  {category !== "device" && <span className="stock-muted">{model.brandName} · </span>}
-                  <strong>{model.name}</strong>
-                  {model.type && <span className="stock-muted"> · {model.type}</span>}
-                </span>
-                <span className="stock-muted">
-                  {model.inStock} {unitWord} stokta · {formatMoney(model.salePrice)} · Seri no: {serialPolicyLabel(model.serialPolicy)}
+              <button type="button" className="stock-model-card" onClick={() => onChoice(model.id)}>
+                <b>
+                  {category !== "device" && <span className="stock-model-card-brand">{model.brandName} · </span>}
+                  {model.name}
+                </b>
+                <small>
+                  {model.type || stockGroupByCategory(category).label} · {formatMoney(model.salePrice)} · Seri no: {serialPolicyLabel(model.serialPolicy)}
+                </small>
+                <span className="stock-model-card-count">
+                  {model.inStock} {unitWord} →
                 </span>
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="ui-text">Bu grupta kayıtlı model yok. Yeni model oluşturun.</p>
+        <p className="stock-muted">Bu grupta kayıtlı model yok; yukarıdan yeni model oluşturun.</p>
       )}
-
-      <button
-        type="button"
-        className={`stock-entry-model stock-entry-new${choice === "new" ? " on" : ""}`}
-        aria-pressed={choice === "new"}
-        onClick={() => onChoice("new")}
-      >
-        <strong>＋ Yeni model oluştur</strong>
-      </button>
-
-      {choice === "new" && draft && <NewModelForm draft={draft} setDraft={setDraft} brands={brands} onBrandAdded={onBrandAdded} />}
     </div>
   );
 }

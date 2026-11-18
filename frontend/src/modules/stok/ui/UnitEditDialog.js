@@ -87,7 +87,7 @@ export default function UnitEditDialog({ unit, model, onClose }) {
         </>
       }
     >
-      <div className="ui-stack">
+      <div className="ui-stack stock-form-dialog">
         {collapsed && (
           <p className="stock-entry-note info">
             Bu satırda seri numarasız {unit.unitIds.length} birim var. Taraf ve üretim tarihi hepsine birlikte yazılır.
