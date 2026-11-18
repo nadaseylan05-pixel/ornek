@@ -20,7 +20,7 @@ import EntryGroupStep from "./EntryGroupStep";
 import EntryModelStep from "./EntryModelStep";
 import EntryUnitsStep, { emptyRow, entryUnits } from "./EntryUnitsStep";
 
-const STEPS = ["Ürün grubu", "Model", "Giriş"];
+const STEPS = ["Marka / ürün grubu", "Model seçimi", "Cihaz bilgileri"];
 
 function emptyModel(category, brandId, gtin) {
   return {
@@ -104,19 +104,21 @@ export default function StockEntryDialog({ options, initialGtin, onClose }) {
         boxesPerCarton: draft.boxesPerCarton,
       };
 
-  async function leaveGroupStep() {
-    if (!category) return setError("Ürün grubunu seçin.");
-    if (category === "device" && !brandId) return setError("Markayı seçin ya da yeni marka ekleyin.");
-
+  // A group or brand card was chosen: load its models and move to step 2 at once (the design has no "İleri"
+  // on this step). The values come as arguments because state set in the same click is not visible yet.
+  async function pickGroup(_kind, nextCategory, nextBrandId) {
+    setError(null);
+    setCategory(nextCategory);
+    setBrandId(nextBrandId);
     setBusy(true);
     try {
-      const result = await loadEntryModels({ category, brandId: category === "device" ? brandId : null });
+      const result = await loadEntryModels({ category: nextCategory, brandId: nextCategory === "device" ? nextBrandId : null });
       if (!result?.ok) return setError(result?.error ?? "Modeller yüklenemedi.");
       setModels(result.data);
-      // A model of another group or brand must not stay selected.
+      // A model of another group or brand must not stay selected; with no models the new-model form opens.
       if (!result.data.some((model) => model.id === choice)) setChoice(result.data.length ? null : "new");
-      if (!draft || draft.category !== category || (category === "device" && draft.brandId !== brandId)) {
-        setDraft(emptyModel(category, brandId, initialGtin));
+      if (!draft || draft.category !== nextCategory || (nextCategory === "device" && draft.brandId !== nextBrandId)) {
+        setDraft(emptyModel(nextCategory, nextBrandId, initialGtin));
       }
       setStep(1);
     } finally {
@@ -124,16 +126,19 @@ export default function StockEntryDialog({ options, initialGtin, onClose }) {
     }
   }
 
-  function leaveModelStep() {
-    if (!choice) return setError("Bir model seçin ya da yeni model oluşturun.");
-    if (choice === "new") {
+  // An existing model card moves on at once; the new-model form needs its fields checked first.
+  function leaveModelStep(nextChoice = choice) {
+    if (!nextChoice) return setError("Bir model seçin ya da yeni model oluşturun.");
+    if (nextChoice === "new") {
       const problem = newModelError(draft);
       if (problem) return setError(problem);
     }
-    if (entryFor !== choice) {
-      setEntry(emptyEntry(selected, today));
-      setEntryFor(choice);
+    const nextSelected = nextChoice === "new" ? null : models.find((model) => model.id === nextChoice) ?? null;
+    if (entryFor !== nextChoice) {
+      setEntry(emptyEntry(nextSelected, today));
+      setEntryFor(nextChoice);
     }
+    setChoice(nextChoice);
     setStep(2);
   }
 
@@ -185,58 +190,56 @@ export default function StockEntryDialog({ options, initialGtin, onClose }) {
 
   function next() {
     setError(null);
-    if (step === 0) return leaveGroupStep();
     if (step === 1) return leaveModelStep();
     return save();
   }
 
+  // Footer per step, as in the design: step 1 only "Vazgeç"; step 2 "← Geri", plus "İleri" while the new-model
+  // form is open; step 3 "← Geri" and "＋ Stoğa kaydet".
+  const footer = (
+    <>
+      {error && <p className="ui-error stock-entry-error" role="alert">{error}</p>}
+      {step === 0 ? (
+        <button type="button" className="ui-button ui-button-ghost" onClick={onClose} disabled={busy}>Vazgeç</button>
+      ) : (
+        <button type="button" className="ui-button ui-button-ghost" disabled={busy} onClick={() => { setError(null); setStep(step - 1); }}>
+          ← Geri
+        </button>
+      )}
+      {step === 1 && choice === "new" && (
+        <button type="button" className="ui-button ui-button-primary" onClick={next} disabled={busy}>İleri</button>
+      )}
+      {step === 2 && (
+        <button type="button" className="ui-button ui-button-primary" onClick={next} disabled={busy}>
+          {busy ? "Kaydediliyor…" : "＋ Stoğa kaydet"}
+        </button>
+      )}
+    </>
+  );
+
+  const brandName = brands.find((brand) => String(brand.id) === String(brandId))?.name;
+  const groupTitle = category === "device" ? brandName ?? "İşitme cihazı" : category ? stockGroupByCategory(category).label : "";
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      eyebrow="Stok"
-      title="Stok ekle"
-      size="lg"
-      footer={
-        <>
-          {error && <p className="ui-error stock-entry-error" role="alert">{error}</p>}
-          {step > 0 && (
-            <button type="button" className="ui-button ui-button-ghost" disabled={busy} onClick={() => { setError(null); setStep(step - 1); }}>
-              Geri
-            </button>
-          )}
-          <button type="button" className="ui-button ui-button-ghost" onClick={onClose} disabled={busy}>Vazgeç</button>
-          <button type="button" className="ui-button ui-button-primary" onClick={next} disabled={busy}>
-            {busy ? "Bekleyin…" : step === 2 ? "Stoğa ekle" : "İleri"}
-          </button>
-        </>
-      }
-    >
-      <Stepper steps={STEPS} current={step} />
+    <Modal open onClose={onClose} eyebrow="Stok yönetimi" title="Yeni stok kaydı" size="lg" footer={footer}>
+      <div className="stock-entry-dialog">
+        <Stepper steps={STEPS} current={step} />
 
-      {step === 0 && (
-        <EntryGroupStep
-          category={category}
-          onCategory={setCategory}
-          brandId={brandId}
-          onBrand={setBrandId}
-          brands={brands}
-          onBrandAdded={addBrandToList}
-        />
-      )}
+        {step === 0 && <EntryGroupStep brands={brands} onPick={pickGroup} onBrandAdded={addBrandToList} busy={busy} />}
 
-      {step === 1 && (
-        <EntryModelStep
-          category={category}
-          models={models}
-          choice={choice}
-          onChoice={setChoice}
-          draft={draft}
-          setDraft={setDraft}
-          brands={brands}
-          onBrandAdded={addBrandToList}
-        />
-      )}
+        {step === 1 && (
+          <EntryModelStep
+            title={groupTitle}
+            category={category}
+            models={models}
+            choice={choice}
+            onChoice={(id) => (id === "new" ? setChoice("new") : leaveModelStep(id))}
+            draft={draft}
+            setDraft={setDraft}
+            brands={brands}
+            onBrandAdded={addBrandToList}
+          />
+        )}
 
       {step === 2 && entry && unitModel && (
         <EntryUnitsStep
@@ -250,6 +253,7 @@ export default function StockEntryDialog({ options, initialGtin, onClose }) {
           onGtinScanned={(gtin) => setDraft((current) => ({ ...current, gtin }))}
         />
       )}
+      </div>
     </Modal>
   );
 }
