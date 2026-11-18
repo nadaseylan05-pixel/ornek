@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { STOCK_SECTIONS } from "../stockRules";
@@ -17,15 +18,17 @@ export default function StockSections() {
         const active = section.value === current;
         const href = index === 0 ? pathname : `${pathname}?sekme=${section.value}`;
         return (
-          <Link
-            key={section.value}
-            href={href}
-            scroll={false}
-            className={active ? "on" : undefined}
-            aria-current={active ? "page" : undefined}
-          >
-            {section.label}
-          </Link>
+          <Fragment key={section.value}>
+            <Link href={href} scroll={false} className={active ? "on" : undefined} aria-current={active ? "page" : undefined}>
+              {section.label}
+            </Link>
+            {/* The design's middle tab. Sales arrive in Faz 2, so it is visible but cannot be chosen yet. */}
+            {index === 0 && (
+              <span className="stock-section-later" aria-disabled="true" title="Satılan ürünler, satışlarla birlikte (Faz 2) gelecek.">
+                Satılan ürünler
+              </span>
+            )}
+          </Fragment>
         );
       })}
     </nav>
