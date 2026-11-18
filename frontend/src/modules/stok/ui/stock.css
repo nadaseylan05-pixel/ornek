@@ -12,8 +12,10 @@
    Wide: search (185–278 px), section switch + "Fiyat güncelle" and the view switch on one row; "Stok ekle"
    and "Stok sil" under a thin line, aligned right. ≤1000 px: search gets its own row. ≤610 px: one column. */
 .stock-toolbar {
-  display: grid; grid-template-columns: minmax(185px, 278px) minmax(0, 1fr) auto;
-  grid-template-areas: "search filters view" "actions actions actions";
+  /* Section switch and "Fiyat güncelle" sit right, next to the view switch (user's choice, 2026-11-18);
+     the empty middle column takes the remaining width. */
+  display: grid; grid-template-columns: minmax(185px, 278px) minmax(0, 1fr) auto auto;
+  grid-template-areas: "search . filters view" "actions actions actions actions";
   align-items: center; gap: 10px 12px; padding: 12px;
   border: 1px solid #dce7ea; border-radius: 16px;
   background: linear-gradient(100deg, #f8fbfc 0%, #eef4f6 100%);
@@ -476,7 +478,7 @@
 /* ---------- Toolbar breakpoints: the design's 1000 px and 610 px, on the page's width ---------- */
 @container stock-page (max-width: 1000px) {
   .stock-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "search search" "filters view" "actions actions"; }
-  .stock-toolbar-filters { flex-wrap: nowrap; overflow-x: auto; }
+  .stock-toolbar-filters { flex-wrap: nowrap; justify-content: flex-end; overflow-x: auto; }
   .stock-price-button { flex: none; }
 }
 @container stock-page (max-width: 610px) {
