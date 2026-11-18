@@ -708,3 +708,87 @@ p.stock-modal-hint { margin: 0; }
 @media (max-width: 600px) {
   .stock-entry-panel .stock-entry-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Edit, unit and remove windows: the same panel language as "Yeni stok kaydı" ---------- */
+.ui-modal:has(.stock-form-dialog) { border-radius: 21px; }
+.ui-modal:has(.stock-form-dialog) .ui-modal-head { padding: 22px 28px 12px; }
+.ui-modal:has(.stock-form-dialog) .ui-modal-head h2 { font-size: 22px; font-weight: 700; }
+.ui-modal:has(.stock-form-dialog) .ui-modal-body { padding: 16px 28px 20px; }
+.ui-modal:has(.stock-form-dialog) .ui-modal-foot { padding: 14px 28px 22px; }
+.stock-form-dialog { gap: 14px; }
+.stock-form-dialog > .stock-entry-grid,
+.stock-form-dialog > .stock-photos,
+.stock-form-dialog > .stock-remove-units,
+.stock-form-dialog > .stock-danger-zone {
+  padding: 16px; border: 1px solid #dfe8ee; border-radius: 14px; background: #f5f8fa;
+}
+.stock-form-dialog > .stock-entry-grid { align-items: start; }
+.stock-form-dialog .ui-input { background: #fff; }
+.stock-form-dialog h3 { margin: 0; color: var(--ui-ink); font-size: 14px; font-weight: 800; }
+.stock-form-dialog > .stock-entry-hint { margin: -4px 2px 0; }
+
+.stock-photos { display: grid; gap: 12px; }
+.stock-photos-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stock-photo-empty {
+  display: grid; justify-items: center; gap: 4px; width: 100%; padding: 22px 16px;
+  border: 1.5px dashed #9fb6d6; border-radius: 12px; background: #fff; color: var(--ui-blue);
+  font: inherit; text-align: center; cursor: pointer;
+  transition-property: border-color, background-color; transition-duration: 150ms;
+}
+.stock-photo-empty:hover:not(:disabled) { border-color: var(--ui-blue); background: #f2f7ff; }
+.stock-photo-empty svg { width: 30px; height: 30px; margin-bottom: 4px; }
+.stock-photo-empty b { font-size: 14px; }
+.stock-photo-empty small { color: var(--ui-muted); font-size: 12px; text-wrap: pretty; }
+.stock-photo-list img { border-radius: 10px; outline: 1px solid rgba(0, 0, 0, .1); outline-offset: -1px; object-fit: cover; }
+
+/* Danger zone: a quiet card with a red outline button; disabled it reads as unavailable, not broken. */
+.stock-form-dialog > .stock-danger-zone { border-color: #f1d3cf; background: #fdf6f5; }
+.stock-danger-zone h3 { color: #8a2a22; }
+.stock-danger-zone .ui-button-danger {
+  justify-self: start; border: 1px solid #e8c8c4; background: #fff; color: #b33c34; box-shadow: none;
+}
+.stock-danger-zone .ui-button-danger:hover:not(:disabled) { background: #fbe7e5; }
+.stock-danger-zone .ui-button-danger:disabled { border-color: #eadad8; background: #fff; color: #c9a19c; opacity: 1; cursor: not-allowed; }
+.stock-danger-zone .ui-button-ghost { background: #fff; }
+
+/* Remove window: the unit list as a framed list like the price window. */
+.stock-form-dialog > .stock-remove-units ul { border: 1px solid #d9e4e8; border-radius: 12px; background: #fff; overflow: hidden; }
+.stock-form-dialog > .stock-remove-units li { border-radius: 0; border: 0; background: #fff; }
+.stock-form-dialog > .stock-remove-units li + li { border-top: 1px solid #eef2f5; }
+.stock-form-dialog > .stock-remove-units li.on { background: #fdf3f2; }
+/* The edit window is rendered inside the model table, so it must not inherit the table's small-caps text. */
+.stock-form-dialog, .stock-form-dialog button, .stock-form-dialog small, .stock-form-dialog b {
+  text-transform: none; letter-spacing: normal;
+}
+/* A fieldset legend sits on the border by default; inside the panel it becomes a normal heading. */
+.stock-form-dialog > .stock-remove-units { margin: 0; min-width: 0; }
+.stock-form-dialog > .stock-remove-units > legend {
+  float: left; width: 100%; margin: 0 0 10px; padding: 0; color: var(--ui-ink); font-size: 14px; font-weight: 800;
+}
+.stock-form-dialog > .stock-remove-units > legend + * { clear: both; }
+.stock-form-dialog > .stock-entry-grid:has(#remove-reason) { grid-template-columns: minmax(0, 1fr); }
+/* On the Servis tab the toolbar holds only the section switch; it keeps its own width as on the stock tab. */
+.stock-toolbar-plain > .stock-sections { justify-self: start; width: auto; }
+
+/* ---------- Card view: wider cards, the photo across the top, actions side by side ---------- */
+.stock-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.stock-card {
+  display: grid; grid-template-rows: auto 1fr; overflow: hidden; padding: 0;
+  border: 1px solid #d9e4e8; border-radius: 17px; background: #fff; box-shadow: var(--stock-shadow);
+  transition-property: border-color, box-shadow; transition-duration: 150ms;
+}
+.stock-card:hover { border-color: #b9cbe3; box-shadow: 0 8px 22px rgba(23, 43, 77, .08); }
+.stock-card.open { border-color: #e7c977; background: #fff; box-shadow: 0 0 0 3px rgba(231, 201, 119, .25); }
+.stock-card > .stock-photo, .stock-card > img.stock-photo {
+  width: 100% !important; height: 150px !important; border-radius: 0; object-fit: cover; outline: 0;
+}
+.stock-card > .stock-photo-empty {
+  display: grid; place-items: center; border: 0; border-bottom: 1px solid #e6edf1;
+  background: linear-gradient(135deg, #eef4fb, #e4f2ef); color: var(--ui-blue);
+  font-family: Georgia, "Times New Roman", serif; font-size: 44px;
+}
+.stock-card-body { display: grid; align-content: start; gap: 6px; padding: 14px 16px 16px; }
+.stock-card-body .stock-brand-name { font-size: 11px; }
+.stock-card-body .stock-card-stock { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.stock-card-body .stock-price { margin-top: 4px; color: var(--ui-ink); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stock-card-body .stock-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 8px; margin-top: 6px; }

@@ -90,7 +90,7 @@ export default function ProductEditDialog({ details, brandName, inStock, serialL
         </>
       }
     >
-      <div className="ui-stack">
+      <div className="ui-stack stock-form-dialog">
         <div className="stock-entry-grid">
           <TextField id="edit-name" label="Model adı" value={draft.name} onChange={set("name")} maxLength={120} required />
           <TextField id="edit-type" label="Tip / varyant (isteğe bağlı)" value={draft.type} onChange={set("type")} maxLength={120} />

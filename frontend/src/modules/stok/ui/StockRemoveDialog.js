@@ -84,7 +84,7 @@ export default function StockRemoveDialog({ model, units, onClose }) {
         </>
       }
     >
-      <div className="ui-stack">
+      <div className="ui-stack stock-form-dialog">
         {units.some((row) => row.serialNo) && (
           <>
             <ScanInput label="Seri no okutun" placeholder="Okutulan birim işaretlenir…" onScan={scanned} autoFocus />
