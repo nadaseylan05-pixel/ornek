@@ -449,6 +449,21 @@
 .stock-modal-hint { color: var(--ui-muted); font-size: 12px; }
 p.stock-modal-hint { margin: 0; }
 
+/* "Hangi fiyat güncellenecek?": the design's radio card (#edf4ff, #4975ba border, 9 px corners), one card only. */
+.stock-price-kind { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; border: 0; }
+.stock-price-kind legend { margin-bottom: 8px; padding: 0; color: var(--ui-ink); font-size: 14px; font-weight: 700; }
+.stock-price-kind-card {
+  display: flex; align-items: center; gap: 9px; padding: 10px 14px;
+  border: 1px solid #d9e4e8; border-radius: 9px; background: #fff; color: var(--ui-ink); font-size: 13px;
+}
+.stock-price-kind-card.on { border-color: #4975ba; background: #edf4ff; }
+.stock-price-kind-card input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: var(--ui-blue); }
+.stock-price-kind-card span { display: grid; gap: 2px; }
+.stock-price-kind-card b { font-size: 13px; font-weight: 700; }
+.stock-price-kind-card small { color: var(--ui-muted); font-size: 11.5px; }
+@container stock-page (max-width: 610px) {
+  .stock-price-kind { grid-template-columns: minmax(0, 1fr); }
+}
 .stock-price-search { display: grid; gap: 5px; }
 .stock-price-search .ui-input { min-height: 44px; border-color: #91a4bf; border-radius: 12px; }
 .stock-price-pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

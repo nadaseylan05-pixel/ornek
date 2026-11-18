@@ -173,6 +173,19 @@ export default function PriceUpdateDialog({ onClose }) {
           <>
             <p className="stock-modal-lead">Satış fiyatı güncellenecek modelleri işaretleyin. Daha önce tamamlanan satışlar değişmez.</p>
 
+            {/* The design offers retail or wholesale here. The clinic sells no wholesale (Şelale Hanım, 2026-11-05),
+                so only the retail card is shown, selected and fixed; a second card can join if that changes. */}
+            <fieldset className="stock-price-kind">
+              <legend>Hangi fiyat güncellenecek?</legend>
+              <label className="stock-price-kind-card on">
+                <input type="radio" name="price-kind" value="sale" checked readOnly />
+                <span>
+                  <b>Perakende satış fiyatı</b>
+                  <small>Hastaya uygulanan satış fiyatı</small>
+                </span>
+              </label>
+            </fieldset>
+
             <div className="stock-price-search" ref={searchBox}>
               <div className="stock-scan-helper" aria-label="Okutma">
                 <button type="button" onClick={focusSearch}>▦ Barkod okut</button>
