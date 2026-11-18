@@ -103,7 +103,8 @@ export default function UnitEditDialog({ unit, model, onClose }) {
           {sided && (
             <label className="ui-field" htmlFor="unit-side">
               <span className="ui-label">Taraf</span>
-              <select id="unit-side" className="ui-input" value={values.earSide} onChange={set("earSide")}>
+              <select id="unit-side" className="ui-input" required value={values.earSide} onChange={set("earSide")}>
+                <option value="" disabled>Taraf seçin</option>
                 {EAR_SIDE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>

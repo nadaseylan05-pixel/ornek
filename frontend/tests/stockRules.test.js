@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   STOCK_GROUPS,
   brandHeading,
+  brandTotalText,
+  modelTypeLabel,
+  serialPreview,
+  summarizeShelfUnits,
   collapseUnits,
   countEarSides,
   earSideLabel,
@@ -153,11 +157,43 @@ describe("stock entry rules", () => {
     expect(withSerial.error).toMatch(/seri numarasız/);
   });
 
+  it("requires a side for every device, naming the row in a bulk entry", () => {
+    const sided = { ...purchase, serialPolicy: "required", sided: true };
+    expect(entryError({ ...sided, units: [{ serialNo: "A1", earSide: "" }] })).toBe("Her cihaz için taraf seçin.");
+    expect(entryError({ ...sided, units: [{ serialNo: "A1", earSide: "right" }, { serialNo: "A2" }] })).toBe("2. satırda taraf seçilmedi.");
+    expect(entryError({ ...sided, units: [{ serialNo: "A1", earSide: "up" }] })).toBe("Her cihaz için taraf seçin.");
+    expect(entryError({ ...sided, units: [{ serialNo: "A1", earSide: "none" }, { serialNo: "A2", earSide: "both" }] })).toBeNull();
+    expect(entryError({ ...purchase, serialPolicy: "required", units: [{ serialNo: "A1" }] })).toBeNull();
+
+    // The server builds the same check from the raw input, so a bypassed window cannot save a device without a side.
+    const device = { id: 4, category: "device", unit: "piece", serial_policy: "required", active: true };
+    const input = { product: { id: 4 }, receipt: { opening: true, priceMode: "unit" } };
+    const missing = buildStockEntryArgs({ ...input, units: [{ serialNo: "S1", earSide: "left" }, { serialNo: "S2", earSide: "" }] }, { existing: device, today: "2026-11-14" });
+    expect(missing.error).toBe("2. satırda taraf seçilmedi.");
+    const tampered = buildStockEntryArgs({ ...input, units: [{ serialNo: "S1", earSide: "middle" }] }, { existing: device, today: "2026-11-14" });
+    expect(tampered.error).toBe("Her cihaz için taraf seçin.");
+  });
+
+  it("asks one shared side for a serial-less receiver count", () => {
+    const receiver = { id: 17, category: "receiver", unit: "piece", serial_policy: "none", active: true };
+    const input = { product: { id: 17 }, receipt: { opening: true, priceMode: "unit" } };
+    const noSide = Array.from({ length: 5 }, () => ({ serialNo: "", earSide: "", productionDate: "" }));
+    expect(buildStockEntryArgs({ ...input, units: noSide }, { existing: receiver, today: "2026-11-14" }).error).toBe("Her cihaz için taraf seçin.");
+    const right = noSide.map((unit) => ({ ...unit, earSide: "right" }));
+    const built = buildStockEntryArgs({ ...input, units: right }, { existing: receiver, today: "2026-11-14" });
+    expect(built.error).toBeUndefined();
+    expect(built.args.units.every((unit) => unit.ear_side === "right")).toBe(true);
+  });
+
   it("drops the ear side outside devices and receivers, and refuses unknown payment methods", () => {
     const existing = { id: 9, category: "charger", unit: "piece", serial_policy: "optional", active: true };
     const base = { product: { id: 9 }, receipt: { opening: false, priceMode: "unit", amount: 100, paymentMethod: "cash", receivedOn: "2026-11-01" } };
     expect(buildStockEntryArgs({ ...base, units: [{ serialNo: "", earSide: "right" }] }, { existing, today: "2026-11-14" }).args.units[0].ear_side).toBeNull();
     expect(buildStockEntryArgs({ ...base, receipt: { ...base.receipt, paymentMethod: "paynet" }, units: [{}] }, { existing, today: "2026-11-14" }).error).toMatch(/ödeme/);
+    // A charger never asks for a side: none is fine, and one sent anyway is dropped.
+    const noSide = buildStockEntryArgs({ ...base, units: [{ serialNo: "C1" }] }, { existing, today: "2026-11-14" });
+    expect(noSide.error).toBeUndefined();
+    expect(noSide.args.units[0].ear_side).toBeNull();
   });
 });
 
@@ -243,6 +279,41 @@ describe("grouping by brand", () => {
       { productId: 6, brandId: 10, brandName: "Bernafon", category: "receiver", inStock: 4 },
     ]);
     expect(brandHeading(mixed)).toBe("Bernafon · 2 model · 5 adet");
+  });
+});
+
+describe("list cells", () => {
+  it("summarizes shelf units per model in one pass", () => {
+    const byProduct = summarizeShelfUnits([
+      { product_id: 1, ear_side: "right", serial_no: null },
+      { product_id: 1, ear_side: "left", serial_no: "SN-A" },
+      { product_id: 2, ear_side: null, serial_no: null },
+      { product_id: 1, ear_side: "right", serial_no: "SN-B" },
+    ]);
+    expect(byProduct.get(1)).toEqual({ sides: ["right", "left", "right"], firstSerial: "SN-A", unitCount: 3 });
+    expect(byProduct.get(2)).toEqual({ sides: [null], firstSerial: null, unitCount: 1 });
+    expect(byProduct.has(3)).toBe(false);
+  });
+
+  it("shows the first serial with the rest as a count", () => {
+    expect(serialPreview({ firstSerial: "SN-A", unitCount: 3 })).toBe("SN-A · +2 kayıt");
+    expect(serialPreview({ firstSerial: "SN-A", unitCount: 1 })).toBe("SN-A");
+    expect(serialPreview({ firstSerial: null, unitCount: 8 })).toBe("Seri kayıtlarına bakın");
+    expect(serialPreview({ firstSerial: null, unitCount: 0 })).toBe("—");
+  });
+
+  it("names the type, or the kind of product when the model has none", () => {
+    expect(modelTypeLabel({ type: "RIC", category: "device" })).toBe("RIC");
+    expect(modelTypeLabel({ type: null, category: "device" })).toBe("İşitme cihazı");
+    expect(modelTypeLabel({ type: "", category: "charger" })).toBe("Şarj cihazı");
+  });
+
+  it("writes the brand total line", () => {
+    const [group] = groupByBrand([
+      { productId: 1, brandId: 10, brandName: "Bernafon", category: "device", inStock: 3 },
+      { productId: 2, brandId: 10, brandName: "Bernafon", category: "device", inStock: 10 },
+    ]);
+    expect(brandTotalText(group)).toBe("Toplam: 2 model · 13 cihaz");
   });
 });
 
@@ -535,16 +606,24 @@ describe("unit editing", () => {
   });
 
   it("follows the model's serial rule", () => {
-    expect(buildUnitUpdate({ serialNo: "" }, options).error).toMatch(/zorunlu/);
-    expect(buildUnitUpdate({ serialNo: "X" }, { ...options, serialPolicy: "none" }).error).toMatch(/seri numarasız/);
-    expect(buildUnitUpdate({ serialNo: "" }, { ...options, serialPolicy: "optional" }).values.serial_no).toBeNull();
-    expect(buildUnitUpdate({ serialNo: "x".repeat(61) }, options).error).toMatch(/60 karakter/);
+    expect(buildUnitUpdate({ serialNo: "", earSide: "left" }, options).error).toMatch(/zorunlu/);
+    expect(buildUnitUpdate({ serialNo: "X", earSide: "left" }, { ...options, serialPolicy: "none" }).error).toMatch(/seri numarasız/);
+    expect(buildUnitUpdate({ serialNo: "", earSide: "left" }, { ...options, serialPolicy: "optional" }).values.serial_no).toBeNull();
+    expect(buildUnitUpdate({ serialNo: "x".repeat(61), earSide: "left" }, options).error).toMatch(/60 karakter/);
   });
 
   it("refuses a future or broken production date and an unknown side", () => {
-    expect(buildUnitUpdate({ serialNo: "A", productionDate: "2026-11-15" }, options).error).toMatch(/Üretim tarihi/);
-    expect(buildUnitUpdate({ serialNo: "A", productionDate: "14.11.2026" }, options).error).toMatch(/Üretim tarihi/);
+    expect(buildUnitUpdate({ serialNo: "A", earSide: "left", productionDate: "2026-11-15" }, options).error).toMatch(/Üretim tarihi/);
+    expect(buildUnitUpdate({ serialNo: "A", earSide: "left", productionDate: "14.11.2026" }, options).error).toMatch(/Üretim tarihi/);
     expect(buildUnitUpdate({ serialNo: "A", earSide: "up" }, options).error).toMatch(/Tarafı/);
+  });
+
+  it("requires a side for devices and receivers, also for a unit saved without one", () => {
+    expect(buildUnitUpdate({ serialNo: "A", earSide: "" }, options).error).toMatch(/Tarafı seçin/);
+    expect(buildUnitUpdate({ serialNo: "A" }, options).error).toMatch(/Tarafı seçin/);
+    expect(buildUnitUpdate({ earSide: "" }, { ...options, category: "receiver", collapsed: true }).error).toMatch(/Tarafı seçin/);
+    expect(buildUnitUpdate({ serialNo: "A", earSide: "none" }, options).values.ear_side).toBe("none");
+    expect(buildUnitUpdate({ serialNo: "A", earSide: "both" }, options).values.ear_side).toBe("both");
   });
 
   it("leaves the side out for groups without sides", () => {

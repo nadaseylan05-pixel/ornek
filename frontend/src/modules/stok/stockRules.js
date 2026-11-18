@@ -4,12 +4,13 @@ import { parseMoney } from "@/lib/money";
 // Stock rules shared by the browser and the server: no database, no "server-only", so Vitest can check them.
 
 // URL key ↔ database category ↔ label. The first one is the default group and stays out of the address.
+// itemLabel names one model of the group; the list shows it when a model has no type of its own.
 export const STOCK_GROUPS = [
-  { key: "cihaz", category: "device", label: "İşitme cihazları", unitWord: "cihaz" },
-  { key: "receiver", category: "receiver", label: "Receiver", unitWord: "adet" },
-  { key: "sarj", category: "charger", label: "Şarj", unitWord: "adet" },
-  { key: "pil", category: "battery", label: "Piller", unitWord: "paket" },
-  { key: "dome", category: "dome", label: "Dome", unitWord: "adet" },
+  { key: "cihaz", category: "device", label: "İşitme cihazları", itemLabel: "İşitme cihazı", unitWord: "cihaz" },
+  { key: "receiver", category: "receiver", label: "Receiver", itemLabel: "Receiver", unitWord: "adet" },
+  { key: "sarj", category: "charger", label: "Şarj", itemLabel: "Şarj cihazı", unitWord: "adet" },
+  { key: "pil", category: "battery", label: "Piller", itemLabel: "Pil", unitWord: "paket" },
+  { key: "dome", category: "dome", label: "Dome", itemLabel: "Dome", unitWord: "adet" },
 ];
 
 export function stockGroupByKey(key) {
@@ -18,6 +19,11 @@ export function stockGroupByKey(key) {
 
 export function stockGroupByCategory(category) {
   return STOCK_GROUPS.find((group) => group.category === category) ?? STOCK_GROUPS[0];
+}
+
+// "Varyant / Ürün tipi" column: the model's own type, or what kind of product it is.
+export function modelTypeLabel(model) {
+  return model?.type || stockGroupByCategory(model?.category).itemLabel;
 }
 
 // Only devices and receivers are fitted to one ear, so only they show the Sağ / Sol split.
@@ -88,6 +94,36 @@ export function brandHeading(group) {
   const categories = new Set(group.models.map((model) => model.category));
   const unitWord = categories.size === 1 ? stockGroupByCategory([...categories][0]).unitWord : "adet";
   return `${group.brandName} · ${group.modelCount} model · ${group.unitCount} ${unitWord}`;
+}
+
+// The small blue line under the heading: "Toplam: 4 model · 13 cihaz".
+export function brandTotalText(group) {
+  return brandHeading(group).replace(`${group.brandName} · `, "Toplam: ");
+}
+
+// The shelf units of many models (one query, ordered by id) → per model: the sides, the first serial
+// number on the shelf and how many units there are. Feeds the "Ürün barkodu / Seri" column and the chips.
+//   rows: [{ product_id, ear_side, serial_no }]
+export function summarizeShelfUnits(rows) {
+  const byProduct = new Map();
+  for (const row of rows ?? []) {
+    let entry = byProduct.get(row.product_id);
+    if (!entry) {
+      entry = { sides: [], firstSerial: null, unitCount: 0 };
+      byProduct.set(row.product_id, entry);
+    }
+    entry.sides.push(row.ear_side);
+    entry.unitCount += 1;
+    if (!entry.firstSerial && row.serial_no) entry.firstSerial = row.serial_no;
+  }
+  return byProduct;
+}
+
+// "SN123 · +2 kayıt" under the GTIN; models tracked without serials point to the open panel instead.
+export function serialPreview({ firstSerial, unitCount }) {
+  if (!(unitCount > 0)) return "—";
+  if (!firstSerial) return "Seri kayıtlarına bakın";
+  return unitCount > 1 ? `${firstSerial} · +${unitCount - 1} kayıt` : firstSerial;
 }
 
 export function summarizeAlerts(rows) {
@@ -249,9 +285,10 @@ export function defaultSerialPolicy(category) {
   return category === "receiver" || category === "dome" ? "none" : "required";
 }
 
-// "" means "not given": the database stores null, which the unit list shows as "Belirtilmedi".
+// Devices and receivers must say which ear they fit, so there is no "not given" choice: the select starts
+// empty on a "Taraf seçin" placeholder and saving refuses it. Units saved before this rule may still have
+// no side (null); the list shows those as "—" and nothing rewrites them.
 export const EAR_SIDE_OPTIONS = [
-  { value: "", label: "Belirtilmedi" },
   { value: "right", label: "Sağ" },
   { value: "left", label: "Sol" },
   { value: "both", label: "İki kulak" },
@@ -352,9 +389,21 @@ export function modelFieldsError(model = {}) {
   return null;
 }
 
+const EAR_SIDES = new Set(EAR_SIDE_OPTIONS.map((option) => option.value));
+
+// A device or receiver without a side → the Turkish sentence, or null. A serial-less model shares one side
+// across its whole count, so there is no row to point at; a bulk list names the first empty row.
+function missingSideError(units, serialPolicy) {
+  const missing = units.findIndex((unit) => !EAR_SIDES.has(unit.earSide));
+  if (missing === -1) return null;
+  if (serialPolicy === "none" || units.length === 1) return "Her cihaz için taraf seçin.";
+  return `${missing + 1}. satırda taraf seçilmedi.`;
+}
+
 // The entry step (units and purchase) → the first problem as a Turkish sentence, or null.
-//   units: [{ serialNo, productionDate }], amount: number or null, today: "YYYY-MM-DD" in Istanbul.
-export function entryError({ units, serialPolicy, opening, priceMode, amount, paymentMethod, receivedOn, today }) {
+//   units: [{ serialNo, earSide, productionDate }], amount: number or null, today: "YYYY-MM-DD" in Istanbul.
+//   sided: true for devices and receivers, whose every unit needs a side.
+export function entryError({ units, serialPolicy, sided = false, opening, priceMode, amount, paymentMethod, receivedOn, today }) {
   const count = units?.length ?? 0;
   if (count < 1 || count > MAX_ENTRY_UNITS) return `Stok adedi 1 ile ${MAX_ENTRY_UNITS} arasında olmalı.`;
 
@@ -369,6 +418,11 @@ export function entryError({ units, serialPolicy, opening, priceMode, amount, pa
   const duplicate = findDuplicateSerial(serials);
   if (duplicate) return `${duplicate} seri numarası listede iki kez var.`;
   if (serials.some((serial) => serial.length > 60)) return "Seri numarası en fazla 60 karakter olabilir.";
+
+  if (sided) {
+    const sideProblem = missingSideError(units, serialPolicy);
+    if (sideProblem) return sideProblem;
+  }
 
   for (const unit of units) {
     const date = unit.productionDate || "";
@@ -406,8 +460,6 @@ function toAmount(value) {
   return typeof value === "number" && Number.isFinite(value) ? Math.round(value * 100) / 100 : Number.NaN;
 }
 
-const EAR_SIDES = new Set(EAR_SIDE_OPTIONS.map((option) => option.value).filter(Boolean));
-
 // The window's input → the three create_stock_receipt arguments, or the first problem in Turkish.
 //   existing: the product row read from the database ({ id, category, unit, serial_policy, active }) when an
 //             existing model was chosen, so its serial rule comes from the database, not from the browser.
@@ -442,8 +494,9 @@ export function buildStockEntryArgs(input, { existing = null, today }) {
   }));
 
   const problem = entryError({
-    units: units.map((unit) => ({ serialNo: unit.serial_no, productionDate: unit.production_date })),
+    units: units.map((unit) => ({ serialNo: unit.serial_no, earSide: unit.ear_side, productionDate: unit.production_date })),
     serialPolicy,
+    sided,
     opening,
     priceMode,
     amount,
@@ -553,10 +606,11 @@ export function buildUnitUpdate(input, { category, serialPolicy, collapsed, toda
   const source = input ?? {};
   const values = {};
 
+  // A unit saved before the side became required may have none; it must get one on its next edit.
   if (hasEarSides(category)) {
     const side = String(source.earSide ?? "");
-    if (side && !EAR_SIDES.has(side)) return { error: "Tarafı seçin." };
-    values.ear_side = side || null;
+    if (!EAR_SIDES.has(side)) return { error: "Tarafı seçin." };
+    values.ear_side = side;
   }
 
   const date = String(source.productionDate ?? "").trim();
