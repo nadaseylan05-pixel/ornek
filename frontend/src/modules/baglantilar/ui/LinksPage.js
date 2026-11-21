@@ -1,5 +1,6 @@
-import PagePlaceholder from "@/modules/shared/ui/PagePlaceholder";
+import "./links.css";
+import LinksManager from "./LinksManager";
 
-export default function LinksPage() {
-  return <PagePlaceholder title="Bağlantılar" description="Sık kullanılan adresler ve kampanya bağlantıları." />;
+export default function LinksPage({ links }) {
+  return <LinksManager links={links} />;
 }

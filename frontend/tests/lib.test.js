@@ -7,6 +7,7 @@ import { whatsappLink } from "@/lib/whatsapp";
 import { toUserMessage } from "@/lib/postgresErrors";
 import { missingPasswordRules } from "@/lib/passwordRules";
 import { formatIdleCookie, isIdleExpired } from "@/lib/idleSession";
+import { normalizeHttpUrl } from "@/lib/linkUrl";
 
 describe("idle sign-out cookie", () => {
   const start = Date.UTC(2026, 10, 9, 8, 0);
@@ -138,6 +139,19 @@ describe("whatsapp", () => {
       "https://web.whatsapp.com/send?phone=905321234567&text=Merhaba%20Ali%20Bey"
     );
     expect(whatsappLink("+905321234567", "", { web: true })).toBe("https://web.whatsapp.com/send?phone=905321234567");
+  });
+});
+
+describe("link URLs", () => {
+  it("adds HTTPS to a domain and preserves HTTP(S) addresses", () => {
+    expect(normalizeHttpUrl("example.com")).toBe("https://example.com/");
+    expect(normalizeHttpUrl("http://example.com/path")).toBe("http://example.com/path");
+  });
+
+  it("allows an empty address for unfinished links but rejects unsafe or malformed schemes", () => {
+    expect(normalizeHttpUrl("")).toBe("");
+    expect(normalizeHttpUrl("javascript:alert(1)")).toBeNull();
+    expect(normalizeHttpUrl("not a URL")).toBeNull();
   });
 });
 
